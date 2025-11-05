@@ -1,0 +1,18 @@
+{
+  "palettes": [
+    {
+      "id": "default",
+      "colors": [
+        {"name": "Sunflower", "hex": "#F2C14E"},
+        {"name": "Coral", "hex": "#F78154"},
+        {"name": "Berry", "hex": "#D7263D"},
+        {"name": "Indigo", "hex": "#3F88C5"},
+        {"name": "Forest", "hex": "#2E933C"},
+        {"name": "Plum", "hex": "#6B2D5C"},
+        {"name": "Teal", "hex": "#2CA6A4"},
+        {"name": "Amber", "hex": "#FFB000"}
+      ]
+    }
+  ]
+}
+

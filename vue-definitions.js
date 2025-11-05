@@ -207,6 +207,30 @@ var app = new Vue({
 
     },
 
+    // Helper to build generated (HSLuv-based) palette
+    _buildGeneratedPalette(protoTiles, outArray) {
+      let numTiles = protoTiles.length;
+      let start = this.colors[0];
+      let end = this.colors[1];
+
+      let i = 0;
+      let range = numTiles - 1/2;
+
+      for (let tile of protoTiles) {
+        let h = this.lerp(start[0], end[0], i / range) % 360;
+        let s = this.lerp(start[1], end[1], i / range);
+        let l = this.lerp(start[2], end[2], i / range);
+        let color = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
+        outArray.push({
+          fill: this.rgbToHex(...color),
+          points: this.normalize(tile.dualPts),
+          area: tile.area,
+          angles: tile.angles,
+        });
+        i++;
+      }
+    },
+
   },
 
   computed: {
@@ -464,26 +488,36 @@ var app = new Vue({
 
       let numTiles = protoTiles.length; 
 
-      let start = this.colors[0];
-      let end = this.colors[1];
-
-      let i = 0;
       let colorPalette = [];
-      let range = numTiles - 1/2;
 
-      for (let tile of protoTiles) {
-        let h = this.lerp(start[0], end[0], i / range) % 360;
-        let s = this.lerp(start[1], end[1], i / range);
-        let l = this.lerp(start[2], end[2], i / range);
-        let color = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
-        colorPalette.push({
-          fill: this.rgbToHex(...color),
-          points: this.normalize(tile.dualPts),
-          area: tile.area,
-          angles: tile.angles,
-        });
+      if (this.paletteMode === 'preset') {
+        // Try to use preset; if missing or invalid, fall back to generated
+        let selected = (this.palettes || []).find(p => p.id === this.paletteName);
+        let presetColors = selected && Array.isArray(selected.colors)
+          ? selected.colors.filter(c => typeof c.hex === 'string' && /^#?[0-9a-fA-F]{6}$/.test(c.hex))
+          : [];
 
-        i++;
+        if (presetColors.length > 0) {
+          let i = 0;
+          for (let tile of protoTiles) {
+            let pick = presetColors[i % presetColors.length].hex;
+            // normalize to leading '#'
+            if (pick[0] !== '#') pick = '#' + pick;
+            colorPalette.push({
+              fill: pick,
+              points: this.normalize(tile.dualPts),
+              area: tile.area,
+              angles: tile.angles,
+            });
+            i++;
+          }
+        } else {
+          // fall through to generated
+          this._buildGeneratedPalette(protoTiles, colorPalette);
+        }
+      } else {
+        // generated (experimental)
+        this._buildGeneratedPalette(protoTiles, colorPalette);
       }
 
       if (this.reverseColors) {
@@ -603,11 +637,25 @@ var app = new Vue({
       context.canvas2Resized = false;
     });
 
+    // Load preset palettes from JSON; degrade gracefully on error
+    fetch('assets/palettes.json')
+      .then(r => r.json())
+      .then(j => {
+        if (j && Array.isArray(j.palettes)) {
+          context.palettes = j.palettes;
+        } else {
+          context.palettes = [];
+        }
+      })
+      .catch(() => {
+        context.palettes = [];
+      });
+
   },
 
   data: {
     dataBackup: {},
-    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring'],
+    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'paletteMode', 'paletteName'],
     symmetry: 5,
     radius: 75,
     pattern: 0.2,
@@ -626,6 +674,10 @@ var app = new Vue({
     contrast: 36,
     sat: 74,
     reverseColors: false,
+    // Palette settings
+    paletteMode: 'preset', // 'preset' | 'generated'
+    paletteName: 'default',
+    palettes: [],
     show: 'Grid & Tiling',
     tiles: [],
     selectedLines: [],
