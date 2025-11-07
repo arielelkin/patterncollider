@@ -584,7 +584,6 @@ var app = new Vue({
         const paletteColors = this.colorPalette.map(entry => entry.fill);
         return {
           scheme: 'substitution-banding',
-          paletteLookup: this.paletteLookup,
           paletteColors: paletteColors,
           bandPeriod: this.bandPeriod,
           defaultColor: '#555555'

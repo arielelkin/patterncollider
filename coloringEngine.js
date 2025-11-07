@@ -35,8 +35,8 @@
     },
 
     'substitution-banding'(tile, context) {
-      if (!context || !context.paletteLookup) {
-        return context?.defaultColor || DEFAULT_COLOR;
+      if (!context) {
+        return DEFAULT_COLOR;
       }
 
       const period = Math.max(1, context.bandPeriod || 6);
