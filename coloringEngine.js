@@ -40,8 +40,14 @@
       }
 
       const period = Math.max(1, context.bandPeriod || 6);
-      const level = tile.gridLevel ?? 0;
-      const mod = ((level % period) + period) % period;
+
+      // Use first grid index instead of sum for proper Ammann banding
+      // Ammann bars form parallel bands in each direction independently
+      const gridIndices = tile.gridIndices || [];
+      const bandDirection = context.bandDirection || 0;
+      const index = gridIndices[bandDirection % gridIndices.length] || 0;
+
+      const mod = ((index % period) + period) % period;
       const normalized = mod / period;
 
       const start = context.lchRamp.start;

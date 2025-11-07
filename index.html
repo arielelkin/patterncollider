@@ -262,6 +262,10 @@
           <input class="slider" type="range" id="bandPeriod" v-model.number="bandPeriod" min="2" max="24" step="1" :disabled="!colorTiles"></input>
           <label for="bandPeriod" :class="colorTiles ? '' : 'grey'">Band Period: <span class="dotted">{{bandPeriod}}</span></label>
         </div>
+        <div>
+          <input class="slider" type="range" id="bandDirection" v-model.number="bandDirection" min="0" :max="symmetry - 1" step="1" :disabled="!colorTiles"></input>
+          <label for="bandDirection" :class="colorTiles ? '' : 'grey'">Band Direction: <span class="dotted">{{bandDirection}}</span></label>
+        </div>
       </template>
       
       <div>

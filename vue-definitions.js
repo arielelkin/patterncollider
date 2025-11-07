@@ -589,6 +589,7 @@ var app = new Vue({
             end: endLCH
           },
           bandPeriod: this.bandPeriod,
+          bandDirection: this.bandDirection,
           defaultColor: '#555555'
         };
       }
@@ -727,7 +728,7 @@ var app = new Vue({
 
   data: {
     dataBackup: {},
-    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'paletteMode', 'paletteName', 'colorScheme', 'bandPeriod'],
+    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'paletteMode', 'paletteName', 'colorScheme', 'bandPeriod', 'bandDirection'],
     symmetry: 5,
     radius: 75,
     pattern: 0.2,
@@ -752,6 +753,7 @@ var app = new Vue({
     palettes: [],
     colorScheme: 'palette', // 'palette' | 'substitution-banding'
     bandPeriod: 8,
+    bandDirection: 0,
     show: 'Grid & Tiling',
     tiles: [],
     selectedLines: [],
