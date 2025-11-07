@@ -462,6 +462,17 @@ var app = new Vue({
           pt.angles = JSON.stringify(angles);
           pt.dualPts = dualPts;
           pt.mean = mean;
+          let gridIndices = [];
+          let gridLevel = 0;
+          for (let i = 0; i < this.symmetry; i++) {
+            let ci = this.sinCosTable[i].cos;
+            let si = this.sinCosTable[i].sin;
+            let kIdx = Math.floor(pt.x * ci + pt.y * si - this.offsets[i]);
+            gridIndices.push(kIdx);
+            gridLevel += kIdx;
+          }
+          pt.gridIndices = gridIndices;
+          pt.gridLevel = gridLevel;
 
         }        
       }
@@ -489,6 +500,23 @@ var app = new Vue({
       let numTiles = protoTiles.length; 
 
       let colorPalette = [];
+
+      if (this.colorScheme !== 'palette') {
+        let swatches = protoTiles.slice(0, Math.min(numTiles, 12));
+        let context = this.coloringRules;
+        for (let tile of swatches) {
+          let fill = (typeof ColoringEngine !== 'undefined')
+            ? ColoringEngine.colorTile(tile, context)
+            : '#888888';
+          colorPalette.push({
+            fill: fill,
+            points: this.normalize(tile.dualPts),
+            area: tile.area,
+            angles: tile.angles
+          });
+        }
+        return colorPalette;
+      }
 
       if (this.paletteMode === 'preset') {
         // Try to use preset; if missing or invalid, fall back to generated
@@ -527,6 +555,50 @@ var app = new Vue({
 
       return colorPalette;
 
+    },
+
+    paletteLookup() {
+      if (this.colorScheme !== 'palette') {
+        return {};
+      }
+      let lookup = {};
+      for (let entry of this.colorPalette) {
+        let key = this.orientationColoring ? entry.angles : entry.area;
+        lookup[key] = entry.fill;
+      }
+      return lookup;
+    },
+
+    coloringRules() {
+      if (!this.colorTiles) {
+        return {
+          scheme: 'palette',
+          paletteLookup: {},
+          orientationColoring: this.orientationColoring,
+          defaultColor: '#000000'
+        };
+      }
+
+      if (this.colorScheme === 'substitution-banding') {
+        let startLCH = typeof hsluv !== 'undefined' && hsluv.hsluvToLch ? hsluv.hsluvToLch(this.colors[0]) : [50, 40, 0];
+        let endLCH = typeof hsluv !== 'undefined' && hsluv.hsluvToLch ? hsluv.hsluvToLch(this.colors[1]) : [80, 60, 90];
+        return {
+          scheme: 'substitution-banding',
+          lchRamp: {
+            start: startLCH,
+            end: endLCH
+          },
+          bandPeriod: this.bandPeriod,
+          defaultColor: '#555555'
+        };
+      }
+
+      return {
+        scheme: 'palette',
+        paletteLookup: this.paletteLookup,
+        orientationColoring: this.orientationColoring,
+        defaultColor: '#555555'
+      };
     },
 
     canvasDisplaySetting() {
@@ -655,7 +727,7 @@ var app = new Vue({
 
   data: {
     dataBackup: {},
-    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'paletteMode', 'paletteName'],
+    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'paletteMode', 'paletteName', 'colorScheme', 'bandPeriod'],
     symmetry: 5,
     radius: 75,
     pattern: 0.2,
@@ -678,6 +750,8 @@ var app = new Vue({
     paletteMode: 'preset', // 'preset' | 'generated'
     paletteName: 'default',
     palettes: [],
+    colorScheme: 'palette', // 'palette' | 'substitution-banding'
+    bandPeriod: 8,
     show: 'Grid & Tiling',
     tiles: [],
     selectedLines: [],

@@ -282,10 +282,15 @@ function sketch(parent) { // we pass the sketch data from the parent
         }
 
         if (data.colorTiles) {
-          //let onScreenColors = data.colors.filter(e => e.onScreen && e.symmetry == data.symmetry);
-          let color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
+          let fillColor;
+          if (typeof ColoringEngine !== 'undefined' && data.coloring) {
+            fillColor = ColoringEngine.colorTile(tile, data.coloring);
+          } else {
+            let color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
+            fillColor = color ? color.fill : '#888888';
+          }
 
-          instance.fill(color.fill);
+          instance.fill(fillColor);
           if (data.showStroke) {
             instance.stroke(stroke, stroke, stroke);
           } else {

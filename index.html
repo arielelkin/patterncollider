@@ -109,6 +109,8 @@
           zoom: zoom,
           colorTiles: colorTiles,
           colors: colorPalette,
+          coloring: coloringRules,
+          colorScheme: colorScheme,
           selectedLines: selectedLines,
           selectedTiles: selectedTiles,
           display: canvasDisplaySetting,
@@ -207,41 +209,60 @@
     <div v-if="mode == 'color'" class="grid lightershade">
 
       <div>
-        <button @click="randomizeColors" :disabled="!colorTiles || paletteMode !== 'generated'">Change Color Palette</button>
+        <button @click="randomizeColors" :disabled="!colorTiles || (paletteMode !== 'generated' && colorScheme === 'palette')">Change Color Palette</button>
       </div>
 
       <div>
         <div>
-          <label for="paletteMode" :class="colorTiles ? '' : 'grey'">Palette</label>
-          <select id="paletteMode" v-model="paletteMode" :disabled="!colorTiles">
-            <option value="preset">Preset</option>
-            <option value="generated">Generated (experimental)</option>
+          <label for="colorScheme">Coloring Scheme</label>
+          <select id="colorScheme" v-model="colorScheme" :disabled="!colorTiles">
+            <option value="palette">Palette</option>
+            <option value="substitution-banding">Substitution Banding</option>
           </select>
         </div>
       </div>
 
-      <div>
+      <template v-if="colorScheme === 'palette'">
         <div>
-          <label for="paletteName" :class="(colorTiles && paletteMode === 'preset') ? '' : 'grey'">Preset</label>
-          <select id="paletteName" v-model="paletteName" :disabled="!colorTiles || paletteMode !== 'preset'">
-            <option v-for="p in palettes" :key="p.id" :value="p.id">{{p.id}}</option>
-          </select>
+          <div>
+            <label for="paletteMode" :class="colorTiles ? '' : 'grey'">Palette</label>
+            <select id="paletteMode" v-model="paletteMode" :disabled="!colorTiles || colorScheme !== 'palette'">
+              <option value="preset">Preset</option>
+              <option value="generated">Generated (experimental)</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div>
         <div>
-          <label for="reverseColors" :class="colorTiles ? '' : 'grey'">Reverse Colors</label>
-          <input type="checkbox" id="reverseColors" v-model="reverseColors" class="checkbox" :disabled="!colorTiles">
+          <div>
+            <label for="paletteName" :class="(colorTiles && paletteMode === 'preset') ? '' : 'grey'">Preset</label>
+            <select id="paletteName" v-model="paletteName" :disabled="!colorTiles || paletteMode !== 'preset' || colorScheme !== 'palette'">
+              <option v-for="p in palettes" :key="p.id" :value="p.id">{{p.id}}</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div>
         <div>
-          <label for="orientationColoring" :class="colorTiles ? '' : 'grey'">Color Using Tile Orientation</label>
-          <input type="checkbox" id="orientationColoring" v-model="orientationColoring" class="checkbox" :disabled="!colorTiles">
+          <div>
+            <label for="reverseColors" :class="colorTiles ? '' : 'grey'">Reverse Colors</label>
+            <input type="checkbox" id="reverseColors" v-model="reverseColors" class="checkbox" :disabled="!colorTiles || colorScheme !== 'palette'">
+          </div>
         </div>
-      </div>
+
+        <div>
+          <div>
+            <label for="orientationColoring" :class="colorTiles ? '' : 'grey'">Color Using Tile Orientation</label>
+            <input type="checkbox" id="orientationColoring" v-model="orientationColoring" class="checkbox" :disabled="!colorTiles || colorScheme !== 'palette'">
+          </div>
+        </div>
+      </template>
+
+      <template v-if="colorScheme === 'substitution-banding'">
+        <div>
+          <input class="slider" type="range" id="bandPeriod" v-model.number="bandPeriod" min="2" max="24" step="1" :disabled="!colorTiles"></input>
+          <label for="bandPeriod" :class="colorTiles ? '' : 'grey'">Band Period: <span class="dotted">{{bandPeriod}}</span></label>
+        </div>
+      </template>
       
       <div>
         <div>
@@ -270,23 +291,23 @@
       </div>
 
       <div>
-        <input class="slider" type="range" id="hue" v-model.number="hue" min="0" max="360" step="1" :disabled="!colorTiles || paletteMode !== 'generated'"></input>
-        <label for="hue" :class="(colorTiles && paletteMode === 'generated') ? '' : 'grey'">Hue</label>       
+        <input class="slider" type="range" id="hue" v-model.number="hue" min="0" max="360" step="1" :disabled="!colorTiles || (paletteMode !== 'generated' && colorScheme === 'palette')"></input>
+        <label for="hue" :class="(colorTiles && (paletteMode === 'generated' || colorScheme !== 'palette')) ? '' : 'grey'">Hue</label>       
       </div>
 
       <div>
-        <input class="slider" type="range" id="hueRange" v-model.number="hueRange" min="-180" max="180" step="1" :disabled="!colorTiles || paletteMode !== 'generated'"></input>
-        <label for="hueRange" :class="(colorTiles && paletteMode === 'generated') ? '' : 'grey'">Hue Range: <span class="dotted">{{hueRange}}</span></label>       
+        <input class="slider" type="range" id="hueRange" v-model.number="hueRange" min="-180" max="180" step="1" :disabled="!colorTiles || (paletteMode !== 'generated' && colorScheme === 'palette')"></input>
+        <label for="hueRange" :class="(colorTiles && (paletteMode === 'generated' || colorScheme !== 'palette')) ? '' : 'grey'">Hue Range: <span class="dotted">{{hueRange}}</span></label>       
       </div>
 
       <div>
-        <input class="slider" type="range" id="sat" v-model.number="sat" min="0" max="100" step="1" :disabled="!colorTiles || paletteMode !== 'generated'"></input>
-        <label for="sat" :class="(colorTiles && paletteMode === 'generated') ? '' : 'grey'">Saturation</label>
+        <input class="slider" type="range" id="sat" v-model.number="sat" min="0" max="100" step="1" :disabled="!colorTiles || (paletteMode !== 'generated' && colorScheme === 'palette')"></input>
+        <label for="sat" :class="(colorTiles && (paletteMode === 'generated' || colorScheme !== 'palette')) ? '' : 'grey'">Saturation</label>
       </div>
 
       <div>
-        <input class="slider" type="range" id="contrast" v-model.number="contrast" min="0" max="50" step="1" :disabled="!colorTiles || paletteMode !== 'generated'"></input>
-        <label for="contrast" :class="(colorTiles && paletteMode === 'generated') ? '' : 'grey'">Contrast</label>
+        <input class="slider" type="range" id="contrast" v-model.number="contrast" min="0" max="50" step="1" :disabled="!colorTiles || (paletteMode !== 'generated' && colorScheme === 'palette')"></input>
+        <label for="contrast" :class="(colorTiles && (paletteMode === 'generated' || colorScheme !== 'palette')) ? '' : 'grey'">Contrast</label>
       </div>
 
       <div style="width: auto; height: auto;">
@@ -305,6 +326,7 @@
 
 </div>
 
+<script src="coloringEngine.js"></script>
 <script src="vue-definitions.js"></script>
 
 </body>
