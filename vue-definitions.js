@@ -580,14 +580,12 @@ var app = new Vue({
       }
 
       if (this.colorScheme === 'substitution-banding') {
-        let startLCH = typeof hsluv !== 'undefined' && hsluv.hsluvToLch ? hsluv.hsluvToLch(this.colors[0]) : [50, 40, 0];
-        let endLCH = typeof hsluv !== 'undefined' && hsluv.hsluvToLch ? hsluv.hsluvToLch(this.colors[1]) : [80, 60, 90];
+        // Extract just the color hex values from the palette
+        const paletteColors = this.colorPalette.map(entry => entry.fill);
         return {
           scheme: 'substitution-banding',
-          lchRamp: {
-            start: startLCH,
-            end: endLCH
-          },
+          paletteLookup: this.paletteLookup,
+          paletteColors: paletteColors,
           bandPeriod: this.bandPeriod,
           defaultColor: '#555555'
         };

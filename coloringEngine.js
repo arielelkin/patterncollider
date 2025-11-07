@@ -35,51 +35,34 @@
     },
 
     'substitution-banding'(tile, context) {
-      if (!context || !context.lchRamp || !context.lchRamp.start || !context.lchRamp.end) {
+      if (!context || !context.paletteLookup) {
         return context?.defaultColor || DEFAULT_COLOR;
       }
 
       const period = Math.max(1, context.bandPeriod || 6);
       const gridIndices = tile.gridIndices || [];
+      const palette = context.paletteColors || [];
 
-      if (gridIndices.length === 0) {
+      if (gridIndices.length === 0 || palette.length === 0) {
         return context.defaultColor || DEFAULT_COLOR;
       }
 
-      // Ammann bars form parallel bands in ALL directions simultaneously
-      // Use first 3 grid directions to control L, C, H independently
-      const start = context.lchRamp.start;
-      const end = context.lchRamp.end;
+      // Ammann bars: create a composite index from ALL grid directions
+      // This ensures bands are visible in every direction
+      // Reduce grid indices mod period to get band numbers
+      const bandIndices = gridIndices.map(idx => ((idx % period) + period) % period);
 
-      // Direction 0 controls Lightness
-      const idx0 = gridIndices[0] || 0;
-      const mod0 = ((idx0 % period) + period) % period;
-      const t0 = mod0 / period;
-      const l = lerp(start[0], end[0], t0);
-
-      // Direction 1 controls Chroma (if available)
-      let c;
-      if (gridIndices.length > 1) {
-        const idx1 = gridIndices[1] || 0;
-        const mod1 = ((idx1 % period) + period) % period;
-        const t1 = mod1 / period;
-        c = lerp(start[1], end[1], t1);
-      } else {
-        c = lerp(start[1], end[1], t0);
+      // Create a hash from all band indices to pick a palette color
+      // Use weighted sum with prime multipliers to avoid collisions
+      const primes = [1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31];
+      let hash = 0;
+      for (let i = 0; i < bandIndices.length; i++) {
+        hash += bandIndices[i] * primes[i % primes.length];
       }
 
-      // Direction 2 controls Hue (if available)
-      let h;
-      if (gridIndices.length > 2) {
-        const idx2 = gridIndices[2] || 0;
-        const mod2 = ((idx2 % period) + period) % period;
-        const t2 = mod2 / period;
-        h = lerp(start[2], end[2], t2);
-      } else {
-        h = lerp(start[2], end[2], t0);
-      }
-
-      return lchToHex([l, c, h]);
+      // Map hash to palette index
+      const colorIndex = hash % palette.length;
+      return palette[colorIndex];
     }
   };
 
