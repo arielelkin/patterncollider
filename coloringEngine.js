@@ -40,22 +40,44 @@
       }
 
       const period = Math.max(1, context.bandPeriod || 6);
-
-      // Use first grid index instead of sum for proper Ammann banding
-      // Ammann bars form parallel bands in each direction independently
       const gridIndices = tile.gridIndices || [];
-      const bandDirection = context.bandDirection || 0;
-      const index = gridIndices[bandDirection % gridIndices.length] || 0;
 
-      const mod = ((index % period) + period) % period;
-      const normalized = mod / period;
+      if (gridIndices.length === 0) {
+        return context.defaultColor || DEFAULT_COLOR;
+      }
 
+      // Ammann bars form parallel bands in ALL directions simultaneously
+      // Use first 3 grid directions to control L, C, H independently
       const start = context.lchRamp.start;
       const end = context.lchRamp.end;
 
-      const l = lerp(start[0], end[0], normalized);
-      const c = lerp(start[1], end[1], normalized);
-      const h = lerp(start[2], end[2], normalized);
+      // Direction 0 controls Lightness
+      const idx0 = gridIndices[0] || 0;
+      const mod0 = ((idx0 % period) + period) % period;
+      const t0 = mod0 / period;
+      const l = lerp(start[0], end[0], t0);
+
+      // Direction 1 controls Chroma (if available)
+      let c;
+      if (gridIndices.length > 1) {
+        const idx1 = gridIndices[1] || 0;
+        const mod1 = ((idx1 % period) + period) % period;
+        const t1 = mod1 / period;
+        c = lerp(start[1], end[1], t1);
+      } else {
+        c = lerp(start[1], end[1], t0);
+      }
+
+      // Direction 2 controls Hue (if available)
+      let h;
+      if (gridIndices.length > 2) {
+        const idx2 = gridIndices[2] || 0;
+        const mod2 = ((idx2 % period) + period) % period;
+        const t2 = mod2 / period;
+        h = lerp(start[2], end[2], t2);
+      } else {
+        h = lerp(start[2], end[2], t0);
+      }
 
       return lchToHex([l, c, h]);
     }
