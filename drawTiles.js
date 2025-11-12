@@ -400,7 +400,16 @@ function sketch(parent) { // we pass the sketch data from the parent
           if (data.colorTiles) {
             let color;
 
-            if (data.coloringMode === 'orientation') {
+            // Handle new ColorRuleEngine modes
+            const newColorModes = ['substitution-level', 'symmetry-group', 'adjacency', 'adjacency-evolution'];
+            if (newColorModes.includes(data.coloringMode)) {
+              // These modes color all tiles with unique assignments
+              color = data.colors.find(e => e.angles === tile.angles && e.area === tile.area);
+              if (!color) {
+                // Fallback: find by area or angles
+                color = data.colors.find(e => e.area === tile.area) || data.colors.find(e => e.angles === tile.angles);
+              }
+            } else if (data.coloringMode === 'orientation') {
               // Color by orientation
               color = data.colors.filter(e => e.angles == tile.angles)[0];
             } else if (data.coloringMode === 'area') {

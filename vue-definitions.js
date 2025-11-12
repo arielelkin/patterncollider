@@ -468,6 +468,45 @@ var app = new Vue({
         return [];
       }
 
+      // For new ColorRuleEngine modes, use tile-based coloring
+      const newColorModes = ['substitution-level', 'symmetry-group', 'adjacency', 'adjacency-evolution'];
+      if (newColorModes.includes(this.coloringMode)) {
+        if (this.colorEngine) {
+          this.colorEngine.setColorRule(this.coloringMode, { symmetryOrder: this.symmetry });
+        }
+
+        let protoTiles = Object.values(this.intersectionPoints);
+        let colorPalette = [];
+
+        for (let tile of protoTiles) {
+          const color = this.colorEngine ? this.colorEngine.colorTile(tile, {
+            symmetry: this.symmetry,
+            tiles: this.intersectionPoints,
+            inflationFactor: 2.0
+          }) : '#888888';
+
+          colorPalette.push({
+            fill: color,
+            points: this.normalize(tile.dualPts),
+            area: tile.area,
+            angles: tile.angles,
+          });
+        }
+
+        // Get unique colored tiles for display
+        const uniqueColors = [...new Set(colorPalette.map(t => t.fill))];
+        const displayPalette = [];
+
+        for (let color of uniqueColors) {
+          const tileWithColor = colorPalette.find(t => t.fill === color);
+          if (tileWithColor) {
+            displayPalette.push(tileWithColor);
+          }
+        }
+
+        return displayPalette;
+      }
+
       // Original coloring logic for orientation and area modes
       let protoTiles = Object.values(this.intersectionPoints); // get a list of all tiles
       const filterFunction = (e, f) => {
