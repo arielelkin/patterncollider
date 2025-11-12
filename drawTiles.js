@@ -2,7 +2,7 @@
 // read more here: https://github.com/processing/p5.js/wiki/Global-and-instance-mode
 
 function sketch(parent) { // we pass the sketch data from the parent
-  return function( p ) { // p could be any variable name
+  return function (p) { // p could be any variable name
     // p5 sketch goes here
     let canvas;
     let preFactor;
@@ -16,7 +16,10 @@ function sketch(parent) { // we pass the sketch data from the parent
     let prevX = 0;
     let prevY = 0;
 
-    p.setup = function() {
+    // Access colorEngine from parent Vue instance
+    parent.colorEngine = parent.$parent && parent.$parent.colorEngine;
+
+    p.setup = function () {
 
       let target = parent.$el.parentElement;
       let width = target.clientWidth;
@@ -25,22 +28,22 @@ function sketch(parent) { // we pass the sketch data from the parent
       canvas = p.createCanvas(width, height);
       canvas.parent(parent.$el);
       //window.addEventListener('mousemove', mouseMoved);
-      parent.$emit('update:resize-completed'); 
-      parent.$emit('update:width', width); 
-      parent.$emit('update:height', height); 
+      parent.$emit('update:resize-completed');
+      parent.$emit('update:width', width);
+      parent.$emit('update:height', height);
 
       p.pixelDensity(2);
       p.noLoop();
       drawTiles(p, parent.data);
     };
 
-    p.draw = function() {
+    p.draw = function () {
 
     };
 
     // this is a new function we've added to p5
     // it runs only if the data changes
-    p.dataChanged = function(data, oldData) {
+    p.dataChanged = function (data, oldData) {
       // console.log('data changed');
       // console.log('x: ', val.x, 'y: ', val.y);
       if (data.display == 'none') {
@@ -51,9 +54,9 @@ function sketch(parent) { // we pass the sketch data from the parent
 
         // resize canvas
         p.resizeCanvas(width, height);
-        parent.$emit('update:resize-completed'); 
-        parent.$emit('update:width', width); 
-        parent.$emit('update:height', height); 
+        parent.$emit('update:resize-completed');
+        parent.$emit('update:width', width);
+        parent.$emit('update:height', height);
       }
 
       if (data.download > oldData.download) {
@@ -70,7 +73,7 @@ function sketch(parent) { // we pass the sketch data from the parent
     };
 
     function whichSide(xp, yp, x1, y1, x2, y2) {
-      return Math.sign((yp - y1) * (x2 -x1) - (xp - x1) * (y2 - y1));
+      return Math.sign((yp - y1) * (x2 - x1) - (xp - x1) * (y2 - y1));
     }
 
     function tileToString(tile) {
@@ -82,13 +85,13 @@ function sketch(parent) { // we pass the sketch data from the parent
 
 
 
-    p.mouseDragged = function() {
+    p.mouseDragged = function () {
 
       if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
         recentHover = true;
 
-        let xprime = (p.mouseX - (p.width/2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height/2) * Math.sin(-rotate);
-        let yprime = (p.mouseX - (p.width/2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height/2) * Math.cos(-rotate);
+        let xprime = (p.mouseX - (p.width / 2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height / 2) * Math.sin(-rotate);
+        let yprime = (p.mouseX - (p.width / 2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height / 2) * Math.cos(-rotate);
 
         selectedTile = getSelectedTile(xprime, yprime);
 
@@ -100,20 +103,20 @@ function sketch(parent) { // we pass the sketch data from the parent
           if (!recentlySelectedTiles.includes(tileString)) {
             updateSelectedTiles(selectedTile, adding);
             recentlySelectedTiles.push(tileString);
-          }            
+          }
 
-        } 
+        }
 
         let mouseDistance = p.dist(p.mouseX, p.mouseY, prevX, prevY);
-        let stepSize = p.max(1, preFactor/10);
+        let stepSize = p.max(1, preFactor / 10);
 
         if (mouseDistance > stepSize) {
           for (let i = 0; i <= mouseDistance; i += stepSize) {
             let cursorX = p.map(i, 0, mouseDistance, p.mouseX, prevX, true);
             let cursorY = p.map(i, 0, mouseDistance, p.mouseY, prevY, true);
 
-            let xprime = (cursorX - (p.width/2 + pan)) * Math.cos(-rotate) - (cursorY - p.height/2) * Math.sin(-rotate);
-            let yprime = (cursorX - (p.width/2 + pan)) * Math.sin(-rotate) + (cursorY - p.height/2) * Math.cos(-rotate);
+            let xprime = (cursorX - (p.width / 2 + pan)) * Math.cos(-rotate) - (cursorY - p.height / 2) * Math.sin(-rotate);
+            let yprime = (cursorX - (p.width / 2 + pan)) * Math.sin(-rotate) + (cursorY - p.height / 2) * Math.cos(-rotate);
             let intermediateTile = getSelectedTile(xprime, yprime);
 
             if (Object.keys(intermediateTile).length > 0) {
@@ -121,7 +124,7 @@ function sketch(parent) { // we pass the sketch data from the parent
               if (!recentlySelectedTiles.includes(tileString)) {
                 updateSelectedTiles(intermediateTile, adding);
                 recentlySelectedTiles.push(tileString);
-              }            
+              }
             }
           }
         }
@@ -132,13 +135,13 @@ function sketch(parent) { // we pass the sketch data from the parent
       }
     }
 
-    p.mouseMoved = function() {
+    p.mouseMoved = function () {
 
       if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
         recentHover = true;
 
-        let xprime = (p.mouseX - (p.width/2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height/2) * Math.sin(-rotate);
-        let yprime = (p.mouseX - (p.width/2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height/2) * Math.cos(-rotate);
+        let xprime = (p.mouseX - (p.width / 2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height / 2) * Math.sin(-rotate);
+        let yprime = (p.mouseX - (p.width / 2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height / 2) * Math.cos(-rotate);
 
         selectedTile = getSelectedTile(xprime, yprime);
 
@@ -147,17 +150,17 @@ function sketch(parent) { // we pass the sketch data from the parent
         if (Object.keys(selectedTile).length > 0) {
 
           p.push();
-            p.translate(p.width/2 + pan, p.height/2);
-            p.fill(128, 215, 255);
-            p.rotate(rotate);
-            p.beginShape();
-            for (let pt of selectedTile.dualPts) {
-              p.vertex(preFactor * pt.x, preFactor * pt.y);
-            }
-            p.endShape(p.CLOSE);
+          p.translate(p.width / 2 + pan, p.height / 2);
+          p.fill(128, 215, 255);
+          p.rotate(rotate);
+          p.beginShape();
+          for (let pt of selectedTile.dualPts) {
+            p.vertex(preFactor * pt.x, preFactor * pt.y);
+          }
+          p.endShape(p.CLOSE);
           p.pop();
 
-        } 
+        }
 
         prevX = p.mouseX;
         prevY = p.mouseY;
@@ -170,11 +173,11 @@ function sketch(parent) { // we pass the sketch data from the parent
     };
 
 
-    p.mousePressed = function() {
+    p.mousePressed = function () {
 
       if (p.mouseX > 0 && p.mouseX < p.width && p.mouseY > 0 && p.mouseY < p.height) {
-        let xprime = (p.mouseX - (p.width/2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height/2) * Math.sin(-rotate);
-        let yprime = (p.mouseX - (p.width/2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height/2) * Math.cos(-rotate);
+        let xprime = (p.mouseX - (p.width / 2 + pan)) * Math.cos(-rotate) - (p.mouseY - p.height / 2) * Math.sin(-rotate);
+        let yprime = (p.mouseX - (p.width / 2 + pan)) * Math.sin(-rotate) + (p.mouseY - p.height / 2) * Math.cos(-rotate);
 
         selectedTile = getSelectedTile(xprime, yprime);
 
@@ -187,10 +190,10 @@ function sketch(parent) { // we pass the sketch data from the parent
             adding = index < 0;
             updateSelectedTiles(selectedTile, adding);
             recentlySelectedTiles.push(tileString);
-          }            
+          }
 
-        } 
-  
+        }
+
         prevX = p.mouseX;
         prevY = p.mouseY;
 
@@ -198,7 +201,7 @@ function sketch(parent) { // we pass the sketch data from the parent
 
     };
 
-    p.mouseReleased = function() {
+    p.mouseReleased = function () {
       recentlySelectedTiles = [];
     };
 
@@ -241,7 +244,7 @@ function sketch(parent) { // we pass the sketch data from the parent
       if (addMode) {
         parent.$emit('update:add-tile', tile);
       } else {
-        parent.$emit('update:remove-tile', tile); 
+        parent.$emit('update:remove-tile', tile);
       }
 
     }
@@ -254,7 +257,7 @@ function sketch(parent) { // we pass the sketch data from the parent
       preFactor = preFactor * data.zoom;
       let stroke = data.stroke;
       rotate = instance.radians(data.rotate);
-      instance.strokeWeight( Math.min(instance.sqrt(preFactor) / 4.5, 1));
+      instance.strokeWeight(Math.min(instance.sqrt(preFactor) / 4.5, 1));
       pan = - data.zoom * instance.min(instance.width, instance.height) * data.pan;
 
       instance.push();
@@ -282,10 +285,35 @@ function sketch(parent) { // we pass the sketch data from the parent
         }
 
         if (data.colorTiles) {
-          //let onScreenColors = data.colors.filter(e => e.onScreen && e.symmetry == data.symmetry);
-          let color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
+          let color;
 
-          instance.fill(color.fill);
+          // Handle Ammann band coloring mode
+          if (data.coloringMode === 'ammann-bands') {
+            // Use ColorRuleEngine to get color for this specific tile
+            if (typeof ColorRuleEngine !== 'undefined' && parent.colorEngine) {
+              const tileColor = parent.colorEngine.colorTile(tile, { symmetry: data.symmetry });
+              color = { fill: tileColor };
+            } else {
+              // Fallback to first color in palette
+              color = data.colors[0] || { fill: '#FF0000' };
+            }
+          } else if (data.coloringMode === 'orientation') {
+            // Color by orientation
+            color = data.colors.filter(e => e.angles == tile.angles)[0];
+          } else if (data.coloringMode === 'area') {
+            // Color by area
+            color = data.colors.filter(e => e.area == tile.area)[0];
+          } else {
+            // Legacy mode: use orientationColoring flag
+            color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
+          }
+
+          if (color) {
+            instance.fill(color.fill);
+          } else {
+            instance.fill(255, 0, 0); // Red fallback
+          }
+
           if (data.showStroke) {
             instance.stroke(stroke, stroke, stroke);
           } else {
