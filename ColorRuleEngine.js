@@ -90,39 +90,100 @@ class ColorRule {
 /**
  * Ammann Band Color Rule
  * 
- * Colors tiles based on which Ammann bands they belong to.
- * Ammann bands are the regions between consecutive parallel lines in the de Bruijn grid.
- * 
- * Each tile is intersected by multiple bands (one from each line direction).
- * We create a unique identifier for the combination of bands and assign colors accordingly.
+ * Colors Ammann bands (strips between parallel lines) in the de Bruijn grid.
+ * Each band is a region between two consecutive parallel lines.
  * 
  * Implementation:
- * 1. For each tile, identify which lines pass through it
- * 2. For each line angle, determine which band the tile belongs to
- * 3. Create a band signature (combination of all band indices)
- * 4. Map band signature to a color from the palette
+ * 1. Extract all grid lines grouped by angle direction
+ * 2. For each angle, create bands between consecutive line pairs
+ * 3. Assign colors from palette to each band
+ * 4. Generate band geometries for rendering
  */
 class AmmannBandColorRule extends ColorRule {
     constructor(palette, options = {}) {
         super(palette);
-        this.mode = options.mode || 'combined'; // 'combined', 'by-angle', or 'single-direction'
+        this.mode = options.mode || 'all-angles'; // 'all-angles' or 'single-direction'
         this.primaryAngle = options.primaryAngle || 0;
         this.bandColorMap = new Map(); // Cache for deterministic color assignment
     }
 
     /**
-     * Identify Ammann bands for a tile
+     * Generate Ammann bands from the grid lines
      * 
-     * @param {Object} tile - Tile with lines property (array of {angle, index} objects)
-     * @param {Object} context - Contains grid information
-     * @returns {Array} Array of band identifiers
+     * @param {Array} gridLines - Array of {angle, index} line objects
+     * @param {Object} context - Contains spacing, canvas dimensions, etc.
+     * @returns {Array} Array of band objects with color and geometry
      */
-    identifyAmmannBands(tile, context) {
-        if (!tile.lines || tile.lines.length === 0) {
-            return [];
+    generateBands(gridLines, context) {
+        // Group lines by angle
+        const linesByAngle = {};
+
+        for (let line of gridLines) {
+            if (!linesByAngle[line.angle]) {
+                linesByAngle[line.angle] = [];
+            }
+            linesByAngle[line.angle].push(line.index);
         }
 
-        // Group lines by angle
+        // Sort indices within each angle group
+        for (let angle in linesByAngle) {
+            linesByAngle[angle].sort((a, b) => a - b);
+        }
+
+        const bands = [];
+        let bandColorIndex = 0;
+
+        // Determine which angles to process
+        const anglesToProcess = this.mode === 'single-direction'
+            ? [this.primaryAngle]
+            : Object.keys(linesByAngle).map(k => parseInt(k)).sort((a, b) => a - b);
+
+        // For each angle direction, create bands between consecutive lines
+        for (let angle of anglesToProcess) {
+            if (!linesByAngle[angle]) continue;
+
+            const indices = linesByAngle[angle];
+
+            // Create bands between consecutive line pairs
+            for (let i = 0; i < indices.length - 1; i++) {
+                const index1 = indices[i];
+                const index2 = indices[i + 1];
+
+                // Create unique band identifier
+                const bandKey = `${angle}:${Math.floor(index1)}`;
+
+                // Assign color if not already assigned
+                if (!this.bandColorMap.has(bandKey)) {
+                    this.bandColorMap.set(bandKey, bandColorIndex % this.palette.size());
+                    bandColorIndex++;
+                }
+
+                const colorIndex = this.bandColorMap.get(bandKey);
+                const color = this.palette.getColorByIndex(colorIndex);
+
+                bands.push({
+                    angle: angle,
+                    index1: index1,
+                    index2: index2,
+                    color: color,
+                    bandKey: bandKey
+                });
+            }
+        }
+
+        return bands;
+    }
+
+    /**
+     * Apply Ammann band coloring (legacy method for compatibility)
+     * This is kept for tile-based coloring if needed
+     */
+    applyRule(tile, context) {
+        if (!tile.lines || tile.lines.length === 0) {
+            return this.palette.getColorByIndex(0);
+        }
+
+        // Group lines by angle and find minimum index
         const linesByAngle = {};
         for (let line of tile.lines) {
             if (!linesByAngle[line.angle]) {
@@ -131,72 +192,28 @@ class AmmannBandColorRule extends ColorRule {
             linesByAngle[line.angle].push(line.index);
         }
 
-        // For each angle, determine the band (region between consecutive parallel lines)
         const bands = [];
         for (let angle in linesByAngle) {
             const indices = linesByAngle[angle].sort((a, b) => a - b);
-
-            // The band is identified by the floor of the minimum index
-            // This ensures tiles between lines n and n+1 get the same band ID
             const bandIndex = Math.floor(Math.min(...indices));
-
-            bands.push({
-                angle: parseInt(angle),
-                bandIndex: bandIndex
-            });
+            bands.push({ angle: parseInt(angle), bandIndex: bandIndex });
         }
 
-        return bands.sort((a, b) => a.angle - b.angle);
-    }
-
-    /**
-     * Create a unique signature for a set of bands
-     */
-    createBandSignature(bands) {
-        return bands.map(b => `${b.angle}:${b.bandIndex}`).join('|');
-    }
-
-    /**
-     * Apply Ammann band coloring to a tile
-     */
-    applyRule(tile, context) {
-        const bands = this.identifyAmmannBands(tile, context);
+        bands.sort((a, b) => a.angle - b.angle);
 
         if (bands.length === 0) {
-            // Fallback: use first color if no bands detected
             return this.palette.getColorByIndex(0);
         }
 
-        let colorKey;
+        // Use first band's color
+        const bandKey = `${bands[0].angle}:${bands[0].bandIndex}`;
 
-        switch (this.mode) {
-            case 'single-direction':
-                // Color by band in primary angle direction only
-                const primaryBand = bands.find(b => b.angle === this.primaryAngle);
-                colorKey = primaryBand ? `${primaryBand.bandIndex}` : '0';
-                break;
-
-            case 'by-angle':
-                // Use sum of all band indices
-                const sumBands = bands.reduce((sum, b) => sum + b.bandIndex, 0);
-                colorKey = `${sumBands}`;
-                break;
-
-            case 'combined':
-            default:
-                // Use complete band signature (most deterministic)
-                colorKey = this.createBandSignature(bands);
-                break;
-        }
-
-        // Check if we've already assigned a color to this band combination
-        if (!this.bandColorMap.has(colorKey)) {
-            // Assign next available color from palette
+        if (!this.bandColorMap.has(bandKey)) {
             const colorIndex = this.bandColorMap.size % this.palette.size();
-            this.bandColorMap.set(colorKey, colorIndex);
+            this.bandColorMap.set(bandKey, colorIndex);
         }
 
-        const colorIndex = this.bandColorMap.get(colorKey);
+        const colorIndex = this.bandColorMap.get(bandKey);
         return this.palette.getColorByIndex(colorIndex);
     }
 
@@ -254,7 +271,7 @@ class AreaColorRule extends ColorRule {
 
 /**
  * Main ColorRuleEngine
- * Manages color palettes and applies color rules to tiles
+ * Manages color palettes and applies color rules to tiles and bands
  */
 class ColorRuleEngine {
     constructor() {
@@ -309,6 +326,16 @@ class ColorRuleEngine {
             default:
                 throw new Error(`Unknown color rule: ${ruleType}`);
         }
+    }
+
+    /**
+     * Generate Ammann bands with colors (for rendering)
+     */
+    generateAmmannBands(gridLines, context) {
+        if (!(this.currentRule instanceof AmmannBandColorRule)) {
+            throw new Error('Current rule is not AmmannBandColorRule');
+        }
+        return this.currentRule.generateBands(gridLines, context);
     }
 
     /**

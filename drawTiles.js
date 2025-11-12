@@ -265,93 +265,197 @@ function sketch(parent) { // we pass the sketch data from the parent
       instance.translate(instance.width / 2 + pan, instance.height / 2);
       instance.rotate(rotate);
 
-      for (let tile of Object.values(data.tiles)) {
+      // Draw Ammann bands if in that mode
+      if (data.coloringMode === 'ammann-bands' && data.colorTiles && data.ammannBands && data.ammannBands.length > 0) {
+        instance.noStroke();
 
-        let tileIsSelected = false;
-        if (data.selectedTiles.length > 0) {
-          tileIsSelected = data.selectedTiles.filter(e => e.x == tile.x && e.y == tile.y).length > 0;
+        // Draw each band as a colored strip
+        for (let band of data.ammannBands) {
+          // Convert hex color to RGB with alpha
+          const hexColor = band.color;
+          const r = parseInt(hexColor.slice(1, 3), 16);
+          const g = parseInt(hexColor.slice(3, 5), 16);
+          const b = parseInt(hexColor.slice(5, 7), 16);
+
+          // Set translucent fill
+          instance.fill(r, g, b, 120); // 120/255 = ~47% opacity
+
+          // Draw the band as a wide polygon between two parallel lines
+          const angle = band.angle * multiplier;
+          const index1 = band.index1 * spacing;
+          const index2 = band.index2 * spacing;
+
+          // Calculate the four corners of the band polygon
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+
+          // Perpendicular direction (rotated 90 degrees)
+          const perpCos = -sin;
+          const perpSin = cos;
+
+          // Create a wide strip across the canvas
+          const stripWidth = instance.max(instance.width, instance.height) * 3;
+
+          instance.beginShape();
+          // Line 1, point A
+          instance.vertex(
+            index1 * cos - stripWidth * perpCos,
+            index1 * sin - stripWidth * perpSin
+          );
+          // Line 1, point B
+          instance.vertex(
+            index1 * cos + stripWidth * perpCos,
+            index1 * sin + stripWidth * perpSin
+          );
+          // Line 2, point C
+          instance.vertex(
+            index2 * cos + stripWidth * perpCos,
+            index2 * sin + stripWidth * perpSin
+          );
+          // Line 2, point D
+          instance.vertex(
+            index2 * cos - stripWidth * perpCos,
+            index2 * sin - stripWidth * perpSin
+          );
+          instance.endShape(instance.CLOSE);
         }
 
-        let tileInSelectedLine = false;
-        let numLinesPassingThroughTile = 0;
-
-        if (data.selectedLines.length > 0) {
-          for (let l of tile.lines) {
-            if (data.selectedLines.filter(e => e.angle == l.angle && e.index == l.index).length > 0) {
-              tileInSelectedLine = true;
-              numLinesPassingThroughTile++;
-            }
-          }
-        }
-
-        if (data.colorTiles) {
-          let color;
-
-          // Handle Ammann band coloring mode
-          if (data.coloringMode === 'ammann-bands') {
-            // Use ColorRuleEngine to get color for this specific tile
-            if (typeof ColorRuleEngine !== 'undefined' && parent.colorEngine) {
-              const tileColor = parent.colorEngine.colorTile(tile, { symmetry: data.symmetry });
-              color = { fill: tileColor };
-            } else {
-              // Fallback to first color in palette
-              color = data.colors[0] || { fill: '#FF0000' };
-            }
-          } else if (data.coloringMode === 'orientation') {
-            // Color by orientation
-            color = data.colors.filter(e => e.angles == tile.angles)[0];
-          } else if (data.coloringMode === 'area') {
-            // Color by area
-            color = data.colors.filter(e => e.area == tile.area)[0];
-          } else {
-            // Legacy mode: use orientationColoring flag
-            color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
-          }
-
-          if (color) {
-            instance.fill(color.fill);
-          } else {
-            instance.fill(255, 0, 0); // Red fallback
-          }
-
-          if (data.showStroke) {
-            instance.stroke(stroke, stroke, stroke);
-          } else {
-            instance.noStroke();
-          }
-
-
-          if (tileInSelectedLine) {
-            instance.fill(0, 255, 0);
-            if (numLinesPassingThroughTile > 1) {
-              instance.fill(60, 179, 113);
-            }
-          }
-          if (tileIsSelected) {
-            instance.fill(128, 215, 255);
-          }
-
+        // Draw tiles with subtle outline
+        if (data.showStroke) {
+          instance.stroke(stroke, stroke, stroke, 50);
+          instance.strokeWeight(0.5);
         } else {
-          instance.stroke(0, 255, 0);
-          instance.noFill();
+          instance.noStroke();
+        }
 
-          if (tileInSelectedLine) {
-            instance.fill(0, 255, 0, 150);
-            if (numLinesPassingThroughTile > 1) {
-              instance.fill(60, 179, 113, 150);
+        instance.noFill();
+
+        for (let tile of Object.values(data.tiles)) {
+          instance.beginShape();
+          for (let pt of tile.dualPts) {
+            instance.vertex(preFactor * pt.x, preFactor * pt.y);
+          }
+          instance.endShape(instance.CLOSE);
+        }
+
+        // Draw selected tiles/lines on top
+        for (let tile of Object.values(data.tiles)) {
+          let tileIsSelected = false;
+          if (data.selectedTiles.length > 0) {
+            tileIsSelected = data.selectedTiles.filter(e => e.x == tile.x && e.y == tile.y).length > 0;
+          }
+
+          let tileInSelectedLine = false;
+          let numLinesPassingThroughTile = 0;
+
+          if (data.selectedLines.length > 0) {
+            for (let l of tile.lines) {
+              if (data.selectedLines.filter(e => e.angle == l.angle && e.index == l.index).length > 0) {
+                tileInSelectedLine = true;
+                numLinesPassingThroughTile++;
+              }
             }
           }
-          if (tileIsSelected) {
-            instance.fill(110, 110, 255);
+
+          if (tileInSelectedLine || tileIsSelected) {
+            if (tileInSelectedLine) {
+              instance.fill(0, 255, 0, 200);
+              if (numLinesPassingThroughTile > 1) {
+                instance.fill(60, 179, 113, 200);
+              }
+            }
+            if (tileIsSelected) {
+              instance.fill(128, 215, 255, 200);
+            }
+
+            instance.noStroke();
+            instance.beginShape();
+            for (let pt of tile.dualPts) {
+              instance.vertex(preFactor * pt.x, preFactor * pt.y);
+            }
+            instance.endShape(instance.CLOSE);
+          }
+        }
+      } else {
+        // Original tile coloring for non-Ammann modes
+        for (let tile of Object.values(data.tiles)) {
+
+          let tileIsSelected = false;
+          if (data.selectedTiles.length > 0) {
+            tileIsSelected = data.selectedTiles.filter(e => e.x == tile.x && e.y == tile.y).length > 0;
           }
 
-        }
+          let tileInSelectedLine = false;
+          let numLinesPassingThroughTile = 0;
 
-        instance.beginShape();
-        for (let pt of tile.dualPts) {
-          instance.vertex(preFactor * pt.x, preFactor * pt.y);
+          if (data.selectedLines.length > 0) {
+            for (let l of tile.lines) {
+              if (data.selectedLines.filter(e => e.angle == l.angle && e.index == l.index).length > 0) {
+                tileInSelectedLine = true;
+                numLinesPassingThroughTile++;
+              }
+            }
+          }
+
+          if (data.colorTiles) {
+            let color;
+
+            if (data.coloringMode === 'orientation') {
+              // Color by orientation
+              color = data.colors.filter(e => e.angles == tile.angles)[0];
+            } else if (data.coloringMode === 'area') {
+              // Color by area
+              color = data.colors.filter(e => e.area == tile.area)[0];
+            } else {
+              // Legacy mode: use orientationColoring flag
+              color = data.colors.filter(e => data.orientationColoring ? e.angles == tile.angles : e.area == tile.area)[0];
+            }
+
+            if (color) {
+              instance.fill(color.fill);
+            } else {
+              instance.fill(255, 0, 0); // Red fallback
+            }
+
+            if (data.showStroke) {
+              instance.stroke(stroke, stroke, stroke);
+            } else {
+              instance.noStroke();
+            }
+
+
+            if (tileInSelectedLine) {
+              instance.fill(0, 255, 0);
+              if (numLinesPassingThroughTile > 1) {
+                instance.fill(60, 179, 113);
+              }
+            }
+            if (tileIsSelected) {
+              instance.fill(128, 215, 255);
+            }
+
+          } else {
+            instance.stroke(0, 255, 0);
+            instance.noFill();
+
+            if (tileInSelectedLine) {
+              instance.fill(0, 255, 0, 150);
+              if (numLinesPassingThroughTile > 1) {
+                instance.fill(60, 179, 113, 150);
+              }
+            }
+            if (tileIsSelected) {
+              instance.fill(110, 110, 255);
+            }
+
+          }
+
+          instance.beginShape();
+          for (let pt of tile.dualPts) {
+            instance.vertex(preFactor * pt.x, preFactor * pt.y);
+          }
+          instance.endShape(instance.CLOSE);
         }
-        instance.endShape(instance.CLOSE);
       }
 
       instance.pop();

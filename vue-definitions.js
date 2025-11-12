@@ -457,39 +457,15 @@ var app = new Vue({
 
     colorPalette() {
 
-      // If using Ammann band coloring, use ColorRuleEngine
+      // If using Ammann band coloring, generate band data
       if (this.coloringMode === 'ammann-bands') {
         // Set the color rule in the engine
         if (this.colorEngine) {
           this.colorEngine.setColorRule('ammann-bands');
         }
 
-        let protoTiles = Object.values(this.intersectionPoints);
-        let colorPalette = [];
-
-        // Color all tiles with Ammann band coloring
-        for (let tile of protoTiles) {
-          const color = this.colorEngine ? this.colorEngine.colorTile(tile, { symmetry: this.symmetry }) : '#FF0000';
-          colorPalette.push({
-            fill: color,
-            points: this.normalize(tile.dualPts),
-            area: tile.area,
-            angles: tile.angles,
-          });
-        }
-
-        // Get unique colored tiles for display
-        const uniqueColors = [...new Set(colorPalette.map(t => t.fill))];
-        const displayPalette = [];
-
-        for (let color of uniqueColors) {
-          const tileWithColor = colorPalette.find(t => t.fill === color);
-          if (tileWithColor) {
-            displayPalette.push(tileWithColor);
-          }
-        }
-
-        return displayPalette;
+        // Return empty palette - bands will be drawn directly in drawTiles
+        return [];
       }
 
       // Original coloring logic for orientation and area modes
@@ -537,6 +513,21 @@ var app = new Vue({
 
       return colorPalette;
 
+    },
+
+    // Compute Ammann bands for rendering
+    ammannBands() {
+      if (this.coloringMode !== 'ammann-bands' || !this.colorEngine) {
+        return [];
+      }
+
+      // Generate bands using the ColorRuleEngine
+      const bands = this.colorEngine.generateAmmannBands(this.grid, {
+        symmetry: this.symmetry,
+        spacing: this.spacing
+      });
+
+      return bands;
     },
 
     canvasDisplaySetting() {
