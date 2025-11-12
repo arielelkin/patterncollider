@@ -23,6 +23,7 @@
   <script src="libraries/p5.svg.js"></script>
   <script src="libraries/hsluv.min.js"></script>
   <script src="libraries/seedrandom.min.js"></script>
+  <script src="ColorRuleEngine.js"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,600;1,300;1,600&family=Raleway:wght@200;300;400;700&display=swap" rel="stylesheet"> 
 
@@ -117,6 +118,7 @@
           showStroke: showStroke,
           rotate: rotate,
           orientationColoring: orientationColoring,
+          coloringMode: coloringMode,
           download: tilingDownloadCount
         }"
         v-on:update:add-tile="selectedTiles = [...selectedTiles, $event]"
@@ -219,8 +221,12 @@
 
       <div>
         <div>
-          <label for="orientationColoring" :class="colorTiles ? '' : 'grey'">Color Using Tile Orientation</label>
-          <input type="checkbox" id="orientationColoring" v-model="orientationColoring" class="checkbox" :disabled="!colorTiles">
+          <label for="coloringMode" :class="colorTiles ? '' : 'grey'">Coloring Mode</label> &nbsp;&nbsp;
+          <select id="coloringMode" v-model="coloringMode" :disabled="!colorTiles">
+            <option value="ammann-bands">Ammann Bands</option>
+            <option value="orientation">Tile Orientation</option>
+            <option value="area">Tile Area</option>
+          </select>
         </div>
       </div>
       
