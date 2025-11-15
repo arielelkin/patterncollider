@@ -568,28 +568,39 @@ var app = new Vue({
 
       // Apply color scheme transformations based on user settings
       const numBands = bands.length;
+      if (numBands === 0) return [];
+
       const lightness = 50;
       const start = [this.hue + this.hueRange, this.sat, lightness + this.contrast];
       const end = [this.hue - this.hueRange, this.sat, lightness - this.contrast];
 
-      const transformedBands = bands.map((band, i) => {
-        // Interpolate between start and end colors based on band index
-        const t = numBands > 1 ? i / (numBands - 1) : 0;
+      // Pre-calculate interpolation factor and allocate color array
+      const colors = new Array(numBands);
+      const range = numBands > 1 ? numBands - 1 : 1;
+
+      for (let i = 0; i < numBands; i++) {
+        const t = i / range;
         const h = (this.lerp(start[0], end[0], t) % 360 + 360) % 360;
-        const s = this.lerp(start[1], end[1], t);
-        const l = this.lerp(start[2], end[2], t);
-        
-        // Convert HSLuv to RGB hex
+        const s = Math.max(0, Math.min(100, this.lerp(start[1], end[1], t)));
+        const l = Math.max(0, Math.min(100, this.lerp(start[2], end[2], t)));
+
         const rgb = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
-        const color = this.rgbToHex(...rgb);
+        colors[i] = this.rgbToHex(...rgb);
+      }
 
-        return {
-          ...band,
-          color: this.reverseColors ? bands[numBands - 1 - i].color : color
-        };
-      });
+      // Reverse colors array if needed
+      if (this.reverseColors) {
+        colors.reverse();
+      }
 
-      return transformedBands;
+      // Apply colors to bands efficiently
+      return bands.map((band, i) => ({
+        angle: band.angle,
+        index1: band.index1,
+        index2: band.index2,
+        bandKey: band.bandKey,
+        color: colors[i]
+      }));
     },
 
     canvasDisplaySetting() {

@@ -289,10 +289,12 @@ function sketch(parent) { // we pass the sketch data from the parent
           instance.noStroke();
 
           for (let band of data.ammannBands) {
+            if (!band.color || band.color.length < 7) continue; // Skip invalid colors
+
             const hexColor = band.color;
-            const r = parseInt(hexColor.slice(1, 3), 16);
-            const g = parseInt(hexColor.slice(3, 5), 16);
-            const b = parseInt(hexColor.slice(5, 7), 16);
+            const r = parseInt(hexColor.slice(1, 3), 16) || 0;
+            const g = parseInt(hexColor.slice(3, 5), 16) || 0;
+            const b = parseInt(hexColor.slice(5, 7), 16) || 0;
             instance.fill(r, g, b, 100); // Set translucent fill (100/255 opacity)
 
             const angle = band.angle * multiplier;
