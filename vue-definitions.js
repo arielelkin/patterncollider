@@ -566,7 +566,30 @@ var app = new Vue({
         spacing: this.spacing
       });
 
-      return bands;
+      // Apply color scheme transformations based on user settings
+      const numBands = bands.length;
+      const lightness = 50;
+      const start = [this.hue + this.hueRange, this.sat, lightness + this.contrast];
+      const end = [this.hue - this.hueRange, this.sat, lightness - this.contrast];
+
+      const transformedBands = bands.map((band, i) => {
+        // Interpolate between start and end colors based on band index
+        const t = numBands > 1 ? i / (numBands - 1) : 0;
+        const h = (this.lerp(start[0], end[0], t) % 360 + 360) % 360;
+        const s = this.lerp(start[1], end[1], t);
+        const l = this.lerp(start[2], end[2], t);
+        
+        // Convert HSLuv to RGB hex
+        const rgb = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
+        const color = this.rgbToHex(...rgb);
+
+        return {
+          ...band,
+          color: this.reverseColors ? bands[numBands - 1 - i].color : color
+        };
+      });
+
+      return transformedBands;
     },
 
     canvasDisplaySetting() {

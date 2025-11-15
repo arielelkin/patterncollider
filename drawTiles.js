@@ -265,70 +265,16 @@ function sketch(parent) { // we pass the sketch data from the parent
       instance.translate(instance.width / 2 + pan, instance.height / 2);
       instance.rotate(rotate);
 
-      // Draw Ammann bands if in that mode
-      if (data.coloringMode === 'ammann-bands' && data.colorTiles && data.ammannBands && data.ammannBands.length > 0) {
-        instance.noStroke();
+      if (data.coloringMode === 'ammann-bands' && data.colorTiles) {
 
-        // Draw each band as a colored strip
-        for (let band of data.ammannBands) {
-          // Convert hex color to RGB with alpha
-          const hexColor = band.color;
-          const r = parseInt(hexColor.slice(1, 3), 16);
-          const g = parseInt(hexColor.slice(3, 5), 16);
-          const b = parseInt(hexColor.slice(5, 7), 16);
-
-          // Set translucent fill
-          instance.fill(r, g, b, 120); // 120/255 = ~47% opacity
-
-          // Draw the band as a wide polygon between two parallel lines
-          const angle = band.angle * multiplier;
-          const index1 = band.index1 * spacing;
-          const index2 = band.index2 * spacing;
-
-          // Calculate the four corners of the band polygon
-          const cos = Math.cos(angle);
-          const sin = Math.sin(angle);
-
-          // Perpendicular direction (rotated 90 degrees)
-          const perpCos = -sin;
-          const perpSin = cos;
-
-          // Create a wide strip across the canvas
-          const stripWidth = instance.max(instance.width, instance.height) * 3;
-
-          instance.beginShape();
-          // Line 1, point A
-          instance.vertex(
-            index1 * cos - stripWidth * perpCos,
-            index1 * sin - stripWidth * perpSin
-          );
-          // Line 1, point B
-          instance.vertex(
-            index1 * cos + stripWidth * perpCos,
-            index1 * sin + stripWidth * perpSin
-          );
-          // Line 2, point C
-          instance.vertex(
-            index2 * cos + stripWidth * perpCos,
-            index2 * sin + stripWidth * perpSin
-          );
-          // Line 2, point D
-          instance.vertex(
-            index2 * cos - stripWidth * perpCos,
-            index2 * sin - stripWidth * perpSin
-          );
-          instance.endShape(instance.CLOSE);
-        }
-
-        // Draw tiles with subtle outline
+        // First, draw all the tile outlines
+        instance.noFill();
         if (data.showStroke) {
-          instance.stroke(stroke, stroke, stroke, 50);
-          instance.strokeWeight(0.5);
+          instance.stroke(data.stroke, data.stroke, data.stroke, 150); // Use a slightly transparent stroke for outlines
+          instance.strokeWeight(0.75);
         } else {
           instance.noStroke();
         }
-
-        instance.noFill();
 
         for (let tile of Object.values(data.tiles)) {
           instance.beginShape();
@@ -338,19 +284,45 @@ function sketch(parent) { // we pass the sketch data from the parent
           instance.endShape(instance.CLOSE);
         }
 
-        // Draw selected tiles/lines on top
-        for (let tile of Object.values(data.tiles)) {
-          let tileIsSelected = false;
-          if (data.selectedTiles.length > 0) {
-            tileIsSelected = data.selectedTiles.filter(e => e.x == tile.x && e.y == tile.y).length > 0;
-          }
+        // Now, draw the translucent bands on top
+        if (data.ammannBands && data.ammannBands.length > 0) {
+          instance.noStroke();
 
+          for (let band of data.ammannBands) {
+            const hexColor = band.color;
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            instance.fill(r, g, b, 100); // Set translucent fill (100/255 opacity)
+
+            const angle = band.angle * multiplier;
+            const index1 = band.index1 * spacing;
+            const index2 = band.index2 * spacing;
+
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const perpCos = -sin;
+            const perpSin = cos;
+            const stripWidth = instance.max(instance.width, instance.height) * 2;
+
+            instance.beginShape();
+            instance.vertex(index1 * cos - stripWidth * perpCos, index1 * sin - stripWidth * perpSin);
+            instance.vertex(index1 * cos + stripWidth * perpCos, index1 * sin + stripWidth * perpSin);
+            instance.vertex(index2 * cos + stripWidth * perpCos, index2 * sin + stripWidth * perpSin);
+            instance.vertex(index2 * cos - stripWidth * perpCos, index2 * sin - stripWidth * perpSin);
+            instance.endShape(instance.CLOSE);
+          }
+        }
+
+        // Finally, draw selected tiles/lines on top of everything
+        for (let tile of Object.values(data.tiles)) {
+          let tileIsSelected = data.selectedTiles.some(e => e.x === tile.x && e.y === tile.y);
           let tileInSelectedLine = false;
           let numLinesPassingThroughTile = 0;
 
           if (data.selectedLines.length > 0) {
             for (let l of tile.lines) {
-              if (data.selectedLines.filter(e => e.angle == l.angle && e.index == l.index).length > 0) {
+              if (data.selectedLines.some(e => e.angle === l.angle && e.index === l.index)) {
                 tileInSelectedLine = true;
                 numLinesPassingThroughTile++;
               }
