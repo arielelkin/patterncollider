@@ -268,36 +268,80 @@ button:disabled {
   justify-content: space-around;
 }
 
-.grid>div {
+.grid>div,
+.grid-3>div {
   flex: 1 1 8.5rem;
-  min-width: 8.5rem;
+  min-width: 0;
+  /* Allow shrinking below content size */
   min-height: 3rem;
   padding: 0.5rem;
-  margin: 0.25rem;
+  margin: 0;
+  /* Grid gap handles spacing */
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  /* Ensure padding doesn't add to width */
+
+  /* Premium Card Look */
+  background-color: rgba(20, 10, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
 }
 
-.grid>div.full-width {
-  flex: 1 1 100%;
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
   width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.span-3 {
+  grid-column: span 3;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.grid>div.row-layout,
+.grid-3>div.row-layout {
+  flex-direction: row;
+  justify-content: space-between;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.grid>div.full-width,
+.grid-3>div.full-width {
+  grid-column: 1 / -1;
   max-width: 100%;
   height: auto;
   min-height: auto;
-  border-top: 1px solid #444;
-  margin-top: 10px;
-  padding-top: 10px;
-  margin-bottom: 10px;
+  border-top: none;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  margin-bottom: 0.5rem;
   /* Add spacing below */
   display: flex;
   flex-direction: column;
   align-items: stretch;
   /* Stretch children to full width */
+}
+
+/* Responsive adjustments for grid-3 */
+@media screen and (max-width: 600px) {
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .span-2,
+  .span-3 {
+    grid-column: span 1;
+  }
 }
 
 .grid>div.auto-size {
@@ -501,4 +545,77 @@ screen and (max-height: 600px) {
   width: 18px;
   height: 18px;
   margin-top: -6px;
+}
+
+/* Color Picker Styling */
+.color-input {
+  width: 100%;
+  height: 2.5rem;
+  cursor: pointer;
+  border: 0.125rem solid rgb(85, 56, 100);
+  background-color: rgb(85, 56, 100);
+  border-radius: 0.25rem;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.4s;
+}
+
+.color-input:hover {
+  border-color: rgb(69, 10, 76);
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 0.125rem;
+}
+
+/* Palette Styling */
+.palette-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5rem;
+  gap: 0.25rem;
+}
+
+.palette-swatch {
+  width: 1.75rem;
+  height: 1.75rem;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.25rem;
+  transition: transform 0.2s, border-color 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.palette-swatch:hover {
+  transform: scale(1.15);
+  border-color: rgb(254, 199, 81);
+  z-index: 1;
+}
+
+/* Premium Scrollbar */
+.scrollable {
+  overflow-y: auto;
+  max-height: 60vh;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(254, 199, 81) rgba(0, 0, 0, 0.3);
+}
+
+.scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.scrollable::-webkit-scrollbar-thumb {
+  background-color: rgb(254, 199, 81);
+  border-radius: 3px;
 }

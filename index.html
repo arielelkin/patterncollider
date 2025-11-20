@@ -208,18 +208,29 @@
       </div>
 
 
-      <div v-if="mode == 'color'" class="vertical-controls lightershade">
+      <div v-if="mode == 'color'" class="grid-3 lightershade scrollable">
 
-        <div>
-          <button @click="randomizeColors" :disabled="!colorTiles" style="width: 100%;">Change Color Palette</button>
+        <div class="row-layout">
+          <label for="colorTiles">Color Tiles</label>
+          <input type="checkbox" id="colorTiles" v-model="colorTiles" class="checkbox">
         </div>
 
-        <div class="control-row">
+        <div class="row-layout">
           <label for="reverseColors" :class="colorTiles ? '' : 'grey'">Reverse Colors</label>
           <input type="checkbox" id="reverseColors" v-model="reverseColors" class="checkbox" :disabled="!colorTiles">
         </div>
 
-        <div>
+        <div class="row-layout">
+          <label for="showIntersections">Intersections</label>
+          <input type="checkbox" id="showIntersections" v-model="showIntersections" class="checkbox">
+        </div>
+
+        <div class="row-layout">
+          <label for="showStroke" :class="colorTiles ? '' : 'grey'">Edges</label>
+          <input type="checkbox" id="showStroke" v-model="showStroke" class="checkbox" :disabled="!colorTiles">
+        </div>
+
+        <div class="span-2">
           <label for="coloringMode" :class="colorTiles ? '' : 'grey'">Coloring Mode</label>
           <select id="coloringMode" v-model="coloringMode" :disabled="!colorTiles" style="width: 100%;">
             <option value="ammann-bands">Ammann Bands</option>
@@ -232,62 +243,49 @@
           </select>
         </div>
 
-        <div class="control-row">
-          <label for="colorTiles">Color Tiles</label>
-          <input type="checkbox" id="colorTiles" v-model="colorTiles" class="checkbox">
-        </div>
-
-        <div class="control-row">
-          <label for="showIntersections">Intersections</label>
-          <input type="checkbox" id="showIntersections" v-model="showIntersections" class="checkbox">
-        </div>
-
-        <div class="control-row">
-          <label for="showStroke" :class="colorTiles ? '' : 'grey'">Edges</label>
-          <input type="checkbox" id="showStroke" v-model="showStroke" class="checkbox" :disabled="!colorTiles">
+        <div class="full-width">
+          <button @click="randomizeColors" :disabled="!colorTiles" style="width: 100%;">Change Color Palette</button>
         </div>
 
         <div>
-          <label for="stroke" :class="showStroke && colorTiles ? '' : 'grey'">Edge Brightness</label>
-          <input class="slider" type="range" id="stroke" v-model.number="stroke" min="0" max="255" step="1"
-            :disabled="!(showStroke && colorTiles)"></input>
-        </div>
-
-        <div>
-          <label for="hue" :class="colorTiles ? '' : 'grey'">Hue</label>
           <input class="slider" type="range" id="hue" v-model.number="hue" min="0" max="360" step="1"
             :disabled="!colorTiles"></input>
+          <label for="hue" :class="colorTiles ? '' : 'grey'">Hue</label>
         </div>
 
         <div>
-          <label for="hueRange" :class="colorTiles ? '' : 'grey'">Hue Range: <span
-              class="dotted">{{hueRange}}</span></label>
-          <input class="slider" type="range" id="hueRange" v-model.number="hueRange" min="-180" max="180" step="1"
-            :disabled="!colorTiles"></input>
-        </div>
-
-        <div>
-          <label for="sat" :class="colorTiles ? '' : 'grey'">Saturation</label>
           <input class="slider" type="range" id="sat" v-model.number="sat" min="0" max="100" step="1"
             :disabled="!colorTiles"></input>
+          <label for="sat" :class="colorTiles ? '' : 'grey'">Saturation</label>
         </div>
 
         <div>
-          <label for="contrast" :class="colorTiles ? '' : 'grey'">Contrast</label>
           <input class="slider" type="range" id="contrast" v-model.number="contrast" min="0" max="50" step="1"
             :disabled="!colorTiles"></input>
+          <label for="contrast" :class="colorTiles ? '' : 'grey'">Contrast</label>
         </div>
 
-        <div v-if="coloringMode == 'ammann-bands' && selectedLines.length > 0" class="lightershade full-width">
+        <div class="span-3">
+          <input class="slider" type="range" id="hueRange" v-model.number="hueRange" min="-180" max="180" step="1"
+            :disabled="!colorTiles"></input>
+          <label for="hueRange" :class="colorTiles ? '' : 'grey'">Hue Range: <span
+              class="dotted">{{hueRange}}</span></label>
+        </div>
+
+        <div class="span-3" v-if="showStroke && colorTiles">
+          <input class="slider" type="range" id="stroke" v-model.number="stroke" min="0" max="255" step="1"
+            :disabled="!(showStroke && colorTiles)"></input>
+          <label for="stroke" :class="showStroke && colorTiles ? '' : 'grey'">Edge Brightness</label>
+        </div>
+
+        <div v-if="coloringMode == 'ammann-bands' && selectedLines.length > 0" class="full-width">
           <div style="width: 100%; text-align: center; margin-bottom: 5px;">Selected Band Color</div>
           <div>
-            <input type="color" id="bandColorPicker" @input="applyColorToSelectedBands"
-              style="width: 100%; height: 30px; cursor: pointer;">
+            <input type="color" id="bandColorPicker" @input="applyColorToSelectedBands" class="color-input">
           </div>
-          <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-top: 5px;">
-            <div v-for="(color, name) in paletteColors" :key="name"
-              :style="{backgroundColor: color, width: '20px', height: '20px', margin: '2px', cursor: 'pointer', border: '1px solid #666'}"
-              @click="applyPaletteColorToSelectedBands(color)" :title="name">
+          <div class="palette-container">
+            <div v-for="(color, name) in paletteColors" :key="name" class="palette-swatch"
+              :style="{backgroundColor: color}" @click="applyPaletteColorToSelectedBands(color)" :title="name">
             </div>
           </div>
           <div style="width: 100%; margin-top: 10px;">
@@ -295,7 +293,7 @@
           </div>
         </div>
 
-        <div class="lightershade full-width">
+        <div class="full-width">
           <div style="width: 100%; text-align: center; margin-bottom: 5px;">Legend</div>
           <div class="row" style="display: flex; flex-wrap: wrap; justify-content: center;">
             <svg v-for="tile in colorPalette" height="50" width="50" style="margin: 2px;">

@@ -293,38 +293,8 @@ function sketch(parent) { // we pass the sketch data from the parent
           instance.endShape(instance.CLOSE);
         }
 
-        // Now, draw the translucent bands on top (optional, for visualization)
-        if (data.ammannBands && data.ammannBands.length > 0) {
-          instance.noStroke();
-
-          for (let band of data.ammannBands) {
-            if (!band.color || band.color.length < 7) continue; // Skip invalid colors
-
-            const hexColor = band.color;
-            const r = parseInt(hexColor.slice(1, 3), 16) || 0;
-            const g = parseInt(hexColor.slice(3, 5), 16) || 0;
-            const b = parseInt(hexColor.slice(5, 7), 16) || 0;
-            // Make bands more visible (increased opacity from 30 to 60)
-            instance.fill(r, g, b, 60);
-
-            const angle = band.angle * multiplier;
-            const index1 = band.index1 * spacing;
-            const index2 = band.index2 * spacing;
-
-            const cos = Math.cos(angle);
-            const sin = Math.sin(angle);
-            const perpCos = -sin;
-            const perpSin = cos;
-            const stripWidth = instance.max(instance.width, instance.height) * 2;
-
-            instance.beginShape();
-            instance.vertex(index1 * cos - stripWidth * perpCos, index1 * sin - stripWidth * perpSin);
-            instance.vertex(index1 * cos + stripWidth * perpCos, index1 * sin + stripWidth * perpSin);
-            instance.vertex(index2 * cos + stripWidth * perpCos, index2 * sin + stripWidth * perpSin);
-            instance.vertex(index2 * cos - stripWidth * perpCos, index2 * sin - stripWidth * perpSin);
-            instance.endShape(instance.CLOSE);
-          }
-        }
+        // Band overlay removed as per user request to color only the tiles
+        // if (data.ammannBands && data.ammannBands.length > 0) { ... }
 
         // Finally, draw selected tiles/lines on top of everything
         for (let tile of Object.values(data.tiles)) {
