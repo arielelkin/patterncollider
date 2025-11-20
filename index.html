@@ -288,8 +288,7 @@
           <label for="contrast" :class="colorTiles ? '' : 'grey'">Contrast</label>
         </div>
 
-        <div v-if="coloringMode == 'ammann-bands' && selectedLines.length > 0" class="grid lightershade"
-          style="border-top: 1px solid #444; margin-top: 10px; padding-top: 10px;">
+        <div v-if="coloringMode == 'ammann-bands' && selectedLines.length > 0" class="lightershade full-width">
           <div style="width: 100%; text-align: center; margin-bottom: 5px;">Selected Band Color</div>
           <div>
             <input type="color" id="bandColorPicker" @input="applyColorToSelectedBands"
@@ -306,10 +305,10 @@
           </div>
         </div>
 
-        <div style="width: auto; height: auto;">
-          <div>Tiles</div>
-          <div class="row" style="display: inline-block;">
-            <svg v-for="tile in colorPalette" height="50" width="50">
+        <div class="lightershade full-width">
+          <div style="width: 100%; text-align: center; margin-bottom: 5px;">Legend</div>
+          <div class="row" style="display: flex; flex-wrap: wrap; justify-content: center;">
+            <svg v-for="tile in colorPalette" height="50" width="50" style="margin: 2px;">
               <polygon :points="SVGPoints(tile)" :style="SVGStyle(tile)">
             </svg>
           </div>

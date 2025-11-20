@@ -211,14 +211,20 @@ var app = new Vue({
       }
 
       this.selectedLines.forEach(line => {
-        const matchingBand = this.ammannBands.find(b =>
+        // Find matching band for this line
+        // Note: A line might define the start or end of a band.
+        // We need to be careful. The AmmannBandColorRule generates bands between lines.
+        // The 'ammannBands' computed property has the bands.
+        // We need to find bands that are adjacent to this line.
+
+        const matchingBands = this.ammannBands.filter(b =>
           b.angle === line.angle &&
-          Math.abs(b.index1 - line.index) < 0.001
+          (Math.abs(b.index1 - line.index) < 0.001 || Math.abs(b.index2 - line.index) < 0.001)
         );
 
-        if (matchingBand) {
-          Vue.set(this.customBandColors, matchingBand.bandKey, color);
-        }
+        matchingBands.forEach(band => {
+          Vue.set(this.customBandColors, band.bandKey, color);
+        });
       });
     },
 
