@@ -180,51 +180,76 @@ class AmmannBandColorRule extends ColorRule {
     }
 
     /**
-     * Apply Ammann band coloring (legacy method for compatibility)
-     * This is kept for tile-based coloring if needed
+     * Helper to convert hex to RGB
+     */
+    hexToRgb(hex) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+    }
+
+    /**
+     * Helper to convert RGB to hex
+     */
+    rgbToHex(r, g, b) {
+        const toHex = (n) => {
+            const hex = Math.round(Math.max(0, Math.min(255, n))).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    }
+
+    /**
+     * Apply Ammann band coloring with blending
+     * Colors the tile by blending the colors of all bands it belongs to
      */
     applyRule(tile, context) {
         if (!tile.lines || tile.lines.length === 0) {
             return this.palette.getColorByIndex(0);
         }
 
-        // We need to find which band this tile belongs to.
-        // Since a tile is an intersection of lines, we can color it based on one of the lines.
-        // We use the sortedIndices stored from generateBands to find the ordinal index.
+        let rSum = 0, gSum = 0, bSum = 0;
+        let count = 0;
 
-        // Sort tile lines by angle to ensure deterministic choice
-        const sortedLines = [...tile.lines].sort((a, b) => a.angle - b.angle);
+        // Iterate through all lines passing through the tile
+        for (let line of tile.lines) {
+            const angle = line.angle;
+            const index = line.index;
 
-        // Pick the first line (lowest angle)
-        const line = sortedLines[0];
-        const angle = line.angle;
-        const index = line.index;
+            let ordinalIndex = 0;
 
-        let ordinalIndex = 0;
-
-        if (this.sortedIndices && this.sortedIndices[angle]) {
-            // Find the index in the sorted list
-            // Use epsilon for float comparison
-            const epsilon = 0.0001;
-            const foundIndex = this.sortedIndices[angle].findIndex(val => Math.abs(val - index) < epsilon);
-            if (foundIndex !== -1) {
-                ordinalIndex = foundIndex;
+            if (this.sortedIndices && this.sortedIndices[angle]) {
+                // Find the index in the sorted list
+                const epsilon = 0.0001;
+                const foundIndex = this.sortedIndices[angle].findIndex(val => Math.abs(val - index) < epsilon);
+                if (foundIndex !== -1) {
+                    ordinalIndex = foundIndex;
+                }
+            } else {
+                ordinalIndex = Math.floor(index);
             }
-        } else {
-            // Fallback if generateBands hasn't been called or data missing
-            ordinalIndex = Math.floor(index);
+
+            const bandKey = `${angle}:${ordinalIndex}`;
+
+            if (!this.bandColorMap.has(bandKey)) {
+                const colorIndex = this.bandColorMap.size % this.palette.size();
+                this.bandColorMap.set(bandKey, colorIndex);
+            }
+
+            const colorIndex = this.bandColorMap.get(bandKey);
+            const colorHex = this.palette.getColorByIndex(colorIndex);
+            const rgb = this.hexToRgb(colorHex);
+
+            rSum += rgb.r;
+            gSum += rgb.g;
+            bSum += rgb.b;
+            count++;
         }
 
-        // Use the same key format as generateBands
-        const bandKey = `${angle}:${ordinalIndex}`;
+        if (count === 0) return this.palette.getColorByIndex(0);
 
-        if (!this.bandColorMap.has(bandKey)) {
-            const colorIndex = this.bandColorMap.size % this.palette.size();
-            this.bandColorMap.set(bandKey, colorIndex);
-        }
-
-        const colorIndex = this.bandColorMap.get(bandKey);
-        return this.palette.getColorByIndex(colorIndex);
+        return this.rgbToHex(rSum / count, gSum / count, bSum / count);
     }
 
     /**
