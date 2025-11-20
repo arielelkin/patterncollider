@@ -130,6 +130,9 @@ class AmmannBandColorRule extends ColorRule {
             linesByAngle[angle].sort((a, b) => a - b);
         }
 
+        // Store sorted indices for applyRule lookup
+        this.sortedIndices = linesByAngle;
+
         const bands = [];
         let bandColorIndex = 0;
 
@@ -185,30 +188,35 @@ class AmmannBandColorRule extends ColorRule {
             return this.palette.getColorByIndex(0);
         }
 
-        // Group lines by angle and find minimum index
-        const linesByAngle = {};
-        for (let line of tile.lines) {
-            if (!linesByAngle[line.angle]) {
-                linesByAngle[line.angle] = [];
+        // We need to find which band this tile belongs to.
+        // Since a tile is an intersection of lines, we can color it based on one of the lines.
+        // We use the sortedIndices stored from generateBands to find the ordinal index.
+
+        // Sort tile lines by angle to ensure deterministic choice
+        const sortedLines = [...tile.lines].sort((a, b) => a.angle - b.angle);
+
+        // Pick the first line (lowest angle)
+        const line = sortedLines[0];
+        const angle = line.angle;
+        const index = line.index;
+
+        let ordinalIndex = 0;
+
+        if (this.sortedIndices && this.sortedIndices[angle]) {
+            // Find the index in the sorted list
+            // Use epsilon for float comparison
+            const epsilon = 0.0001;
+            const foundIndex = this.sortedIndices[angle].findIndex(val => Math.abs(val - index) < epsilon);
+            if (foundIndex !== -1) {
+                ordinalIndex = foundIndex;
             }
-            linesByAngle[line.angle].push(line.index);
+        } else {
+            // Fallback if generateBands hasn't been called or data missing
+            ordinalIndex = Math.floor(index);
         }
 
-        const bands = [];
-        for (let angle in linesByAngle) {
-            const indices = linesByAngle[angle].sort((a, b) => a - b);
-            const bandIndex = Math.floor(Math.min(...indices));
-            bands.push({ angle: parseInt(angle), bandIndex: bandIndex });
-        }
-
-        bands.sort((a, b) => a.angle - b.angle);
-
-        if (bands.length === 0) {
-            return this.palette.getColorByIndex(0);
-        }
-
-        // Use first band's color
-        const bandKey = `${bands[0].angle}:${bands[0].bandIndex}`;
+        // Use the same key format as generateBands
+        const bandKey = `${angle}:${ordinalIndex}`;
 
         if (!this.bandColorMap.has(bandKey)) {
             const colorIndex = this.bandColorMap.size % this.palette.size();
@@ -782,16 +790,6 @@ if (typeof module !== 'undefined' && module.exports) {
         SymmetryGroupColorRule,
         AdjacencyColorRule,
         AdjacencyEvolutionColorRule,
-        DEFAULT_PALETTE
-    };
-}
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        ColorRuleEngine,
-        PaletteMap,
-        AmmannBandColorRule,
-        OrientationColorRule,
-        AreaColorRule,
         DEFAULT_PALETTE
     };
 }

@@ -194,29 +194,29 @@ var app = new Vue({
      */
     applyColorToSelectedBands(event) {
       const color = event.target.value;
+      this.applyCustomColor(color);
+    },
 
+    applyPaletteColorToSelectedBands(color) {
+      this.applyCustomColor(color);
+      // Also update the color picker value visually if possible
+      const picker = document.getElementById('bandColorPicker');
+      if (picker) picker.value = color;
+    },
+
+    applyCustomColor(color) {
       // Guard clause: Ensure we are in the correct mode and have a selection
       if (this.selectedLines.length === 0 || this.coloringMode !== 'ammann-bands') {
         return;
       }
 
-      // We need to map the selected grid lines to the actual Ammann bands.
-      // A "band" is defined as the region between two consecutive grid lines.
-      // When a user selects a line, we interpret this as selecting the band *associated* 
-      // with that line (specifically, the band where this line is the start index).
-
       this.selectedLines.forEach(line => {
-        // Find the band in our computed property that matches this line.
-        // We look for a band where 'index1' (start index) matches the selected line's index.
-        // We use a small epsilon for float comparison to be safe.
         const matchingBand = this.ammannBands.find(b =>
           b.angle === line.angle &&
           Math.abs(b.index1 - line.index) < 0.001
         );
 
         if (matchingBand) {
-          // Use Vue.set to ensure the new property is reactive
-          // The bandKey is now guaranteed to be unique (ordinal-based) from ColorRuleEngine
           Vue.set(this.customBandColors, matchingBand.bandKey, color);
         }
       });
@@ -648,24 +648,37 @@ var app = new Vue({
         colors.reverse();
       }
 
-      // Apply colors to bands efficiently
-      return bands.map((band, i) => {
+      // Construct the final colors array including custom colors
+      const finalColors = bands.map((band, i) => {
         // Check for custom color first
         if (this.customBandColors[band.bandKey]) {
-          return {
-            ...band,
-            color: this.customBandColors[band.bandKey]
-          };
+          return this.customBandColors[band.bandKey];
         }
+        return colors[i];
+      });
 
+      // Update the engine's palette to match these colors
+      // This ensures that tile coloring (via colorTile) matches the band colors
+      if (this.colorEngine) {
+        const newPalette = new PaletteMap(finalColors);
+        this.colorEngine.registerPalette('dynamic-ammann', newPalette);
+        this.colorEngine.setActivePalette('dynamic-ammann');
+      }
+
+      // Apply colors to bands efficiently
+      return bands.map((band, i) => {
         return {
           angle: band.angle,
           index1: band.index1,
           index2: band.index2,
           bandKey: band.bandKey,
-          color: colors[i]
+          color: finalColors[i]
         };
       });
+    },
+
+    paletteColors() {
+      return typeof DEFAULT_PALETTE !== 'undefined' ? DEFAULT_PALETTE : {};
     },
 
     canvasDisplaySetting() {

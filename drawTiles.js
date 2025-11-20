@@ -267,16 +267,25 @@ function sketch(parent) { // we pass the sketch data from the parent
 
       if (data.coloringMode === 'ammann-bands' && data.colorTiles) {
 
-        // First, draw all the tile outlines
-        instance.noFill();
+        // First, draw all the tiles with colors derived from Ammann bands
         if (data.showStroke) {
-          instance.stroke(data.stroke, data.stroke, data.stroke, 150); // Use a slightly transparent stroke for outlines
+          instance.stroke(data.stroke, data.stroke, data.stroke, 150);
           instance.strokeWeight(0.75);
         } else {
           instance.noStroke();
         }
 
         for (let tile of Object.values(data.tiles)) {
+          // Get color from engine if available
+          let color = '#888888';
+          if (parent.colorEngine) {
+            color = parent.colorEngine.colorTile(tile, {
+              symmetry: data.symmetry
+            });
+          }
+
+          instance.fill(color);
+
           instance.beginShape();
           for (let pt of tile.dualPts) {
             instance.vertex(preFactor * pt.x, preFactor * pt.y);
@@ -284,7 +293,7 @@ function sketch(parent) { // we pass the sketch data from the parent
           instance.endShape(instance.CLOSE);
         }
 
-        // Now, draw the translucent bands on top
+        // Now, draw the translucent bands on top (optional, for visualization)
         if (data.ammannBands && data.ammannBands.length > 0) {
           instance.noStroke();
 
@@ -295,7 +304,8 @@ function sketch(parent) { // we pass the sketch data from the parent
             const r = parseInt(hexColor.slice(1, 3), 16) || 0;
             const g = parseInt(hexColor.slice(3, 5), 16) || 0;
             const b = parseInt(hexColor.slice(5, 7), 16) || 0;
-            instance.fill(r, g, b, 100); // Set translucent fill (100/255 opacity)
+            // Make bands much more subtle since tiles are now colored
+            instance.fill(r, g, b, 30);
 
             const angle = band.angle * multiplier;
             const index1 = band.index1 * spacing;
