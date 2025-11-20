@@ -333,9 +333,35 @@ function sketch(parent) { // we pass the sketch data from the parent
 
           if (tileInSelectedLine || tileIsSelected) {
             if (tileInSelectedLine) {
-              instance.fill(0, 255, 0, 200);
-              if (numLinesPassingThroughTile > 1) {
-                instance.fill(60, 179, 113, 200);
+              let bandColors = [];
+              if (data.coloringMode === 'ammann-bands' && data.ammannBands && data.ammannBands.length > 0) {
+                for (let l of tile.lines) {
+                  if (data.selectedLines.some(e => e.angle === l.angle && e.index === l.index)) {
+                    // Find matching band
+                    let matchingBand = data.ammannBands.find(b =>
+                      b.angle === l.angle &&
+                      (Math.abs(b.index1 - l.index) < 0.001 || Math.abs(b.index2 - l.index) < 0.001)
+                    );
+                    if (matchingBand) {
+                      bandColors.push(matchingBand.color);
+                    }
+                  }
+                }
+              }
+
+              if (bandColors.length > 0) {
+                let rSum = 0, gSum = 0, bSum = 0;
+                for (let c of bandColors) {
+                  rSum += parseInt(c.slice(1, 3), 16);
+                  gSum += parseInt(c.slice(3, 5), 16);
+                  bSum += parseInt(c.slice(5, 7), 16);
+                }
+                instance.fill(rSum / bandColors.length, gSum / bandColors.length, bSum / bandColors.length, 200);
+              } else {
+                instance.fill(0, 255, 0, 200);
+                if (numLinesPassingThroughTile > 1) {
+                  instance.fill(60, 179, 113, 200);
+                }
               }
             }
             if (tileIsSelected) {

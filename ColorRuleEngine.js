@@ -150,7 +150,9 @@ class AmmannBandColorRule extends ColorRule {
                 const index2 = indices[i + 1];
 
                 // Create unique band identifier
-                const bandKey = `${angle}:${Math.floor(index1)}`;
+                // Use ordinal index 'i' instead of Math.floor(index1) to ensure uniqueness
+                // even when lines are close together (sub-integer spacing).
+                const bandKey = `${angle}:${i}`;
 
                 // Assign color if not already assigned
                 if (!this.bandColorMap.has(bandKey)) {

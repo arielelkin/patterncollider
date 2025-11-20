@@ -183,6 +183,45 @@ var app = new Vue({
       alert("Link copied to clipboard");
     },
 
+    /**
+     * Applies a custom color to the currently selected Ammann bands.
+     * 
+     * This method handles the user interaction when a specific color is chosen from the picker.
+     * It maps the selected grid lines to their corresponding Ammann bands and updates the
+     * `customBandColors` state, triggering a reactivity update in the UI.
+     * 
+     * @param {Event} event - The input event from the color picker
+     */
+    applyColorToSelectedBands(event) {
+      const color = event.target.value;
+
+      // Guard clause: Ensure we are in the correct mode and have a selection
+      if (this.selectedLines.length === 0 || this.coloringMode !== 'ammann-bands') {
+        return;
+      }
+
+      // We need to map the selected grid lines to the actual Ammann bands.
+      // A "band" is defined as the region between two consecutive grid lines.
+      // When a user selects a line, we interpret this as selecting the band *associated* 
+      // with that line (specifically, the band where this line is the start index).
+
+      this.selectedLines.forEach(line => {
+        // Find the band in our computed property that matches this line.
+        // We look for a band where 'index1' (start index) matches the selected line's index.
+        // We use a small epsilon for float comparison to be safe.
+        const matchingBand = this.ammannBands.find(b =>
+          b.angle === line.angle &&
+          Math.abs(b.index1 - line.index) < 0.001
+        );
+
+        if (matchingBand) {
+          // Use Vue.set to ensure the new property is reactive
+          // The bandKey is now guaranteed to be unique (ordinal-based) from ColorRuleEngine
+          Vue.set(this.customBandColors, matchingBand.bandKey, color);
+        }
+      });
+    },
+
     requestFullscreen() {
 
       if (!this.fullscreen) {
@@ -464,7 +503,20 @@ var app = new Vue({
           this.colorEngine.setColorRule('ammann-bands');
         }
 
-        // Return empty palette - bands will be drawn directly in drawTiles
+        // Return unique band colors for the legend
+        const bands = this.ammannBands;
+        if (bands.length > 0) {
+          const uniqueColors = [...new Set(bands.map(b => b.color))];
+          // Define a simple square for the legend
+          const squarePoints = [[-20, -20], [20, -20], [20, 20], [-20, 20]];
+
+          return uniqueColors.map(color => ({
+            fill: color,
+            points: squarePoints,
+            area: 'Band',
+            angles: ''
+          }));
+        }
         return [];
       }
 
@@ -561,6 +613,9 @@ var app = new Vue({
       }
 
       // Generate bands using the ColorRuleEngine
+      // Ensure the correct rule is active to prevent race conditions
+      this.colorEngine.setColorRule('ammann-bands');
+
       const bands = this.colorEngine.generateAmmannBands(this.grid, {
         symmetry: this.symmetry,
         spacing: this.spacing
@@ -594,13 +649,23 @@ var app = new Vue({
       }
 
       // Apply colors to bands efficiently
-      return bands.map((band, i) => ({
-        angle: band.angle,
-        index1: band.index1,
-        index2: band.index2,
-        bandKey: band.bandKey,
-        color: colors[i]
-      }));
+      return bands.map((band, i) => {
+        // Check for custom color first
+        if (this.customBandColors[band.bandKey]) {
+          return {
+            ...band,
+            color: this.customBandColors[band.bandKey]
+          };
+        }
+
+        return {
+          angle: band.angle,
+          index1: band.index1,
+          index2: band.index2,
+          bandKey: band.bandKey,
+          color: colors[i]
+        };
+      });
     },
 
     canvasDisplaySetting() {
@@ -744,6 +809,7 @@ var app = new Vue({
     selectedTiles: [],
     epsilon: Math.pow(10, -6),
     inverseEpsilon: Math.pow(10, 6),
+    customBandColors: {},
     canvas1Resized: false,
     canvas2Resized: false,
     width: 0,
