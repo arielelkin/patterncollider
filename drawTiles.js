@@ -304,8 +304,8 @@ function sketch(parent) { // we pass the sketch data from the parent
             const r = parseInt(hexColor.slice(1, 3), 16) || 0;
             const g = parseInt(hexColor.slice(3, 5), 16) || 0;
             const b = parseInt(hexColor.slice(5, 7), 16) || 0;
-            // Make bands much more subtle since tiles are now colored
-            instance.fill(r, g, b, 30);
+            // Make bands more visible (increased opacity from 30 to 60)
+            instance.fill(r, g, b, 60);
 
             const angle = band.angle * multiplier;
             const index1 = band.index1 * spacing;

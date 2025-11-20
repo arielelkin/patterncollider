@@ -402,3 +402,43 @@ screen and (max-height: 600px) {
     display: none;
   }
 }
+
+.vertical-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow-y: auto;
+  /* Allow scrolling if needed */
+  max-height: 60vh;
+  /* Limit height to allow scrolling within the footer area if needed */
+}
+
+.vertical-controls>div {
+  width: 100%;
+  max-width: 500px;
+  /* Limit width for better readability */
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.2);
+  /* Slight background for separation */
+  border-radius: 8px;
+}
+
+.vertical-controls .control-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vertical-controls label {
+  margin-bottom: 0.25rem;
+  width: 100%;
+  text-align: left;
+}
