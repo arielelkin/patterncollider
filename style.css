@@ -408,26 +408,49 @@ screen and (max-height: 600px) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 1rem;
+  padding: 0.5rem;
+  /* More compact padding */
   box-sizing: border-box;
   overflow-y: auto;
-  /* Allow scrolling if needed */
   max-height: 60vh;
-  /* Limit height to allow scrolling within the footer area if needed */
+
+  /* Premium Scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(254, 199, 81) rgba(0, 0, 0, 0.3);
+}
+
+/* Webkit Scrollbar Styling */
+.vertical-controls::-webkit-scrollbar {
+  width: 6px;
+}
+
+.vertical-controls::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.vertical-controls::-webkit-scrollbar-thumb {
+  background-color: rgb(254, 199, 81);
+  border-radius: 3px;
 }
 
 .vertical-controls>div {
   width: 100%;
-  max-width: 500px;
-  /* Limit width for better readability */
-  margin-bottom: 1rem;
+  max-width: 100%;
+  /* Use full width of container */
+  margin-bottom: 0.5rem;
+  /* Tighter spacing */
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.5rem;
-  background-color: rgba(0, 0, 0, 0.2);
-  /* Slight background for separation */
-  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+
+  /* Premium Card Look */
+  background-color: rgba(20, 10, 30, 0.6);
+  /* Darker, glass-like */
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(5px);
 }
 
 .vertical-controls .control-row {
@@ -435,10 +458,33 @@ screen and (max-height: 600px) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 0;
+  /* Remove extra margin */
 }
 
 .vertical-controls label {
   margin-bottom: 0.25rem;
   width: 100%;
   text-align: left;
+  font-size: 0.9rem;
+  /* Slightly smaller text for compactness */
+  font-weight: 400;
+  color: rgb(255, 220, 180);
+  /* Brighter text */
+  letter-spacing: 0.5px;
+}
+
+/* Compact slider container */
+.vertical-controls input[type="range"] {
+  margin-bottom: 0;
+  height: 6px;
+  /* Thinner slider track */
+}
+
+.vertical-controls input[type="range"]::-webkit-slider-thumb {
+  width: 16px;
+  /* Smaller thumb */
+  height: 16px;
+  margin-top: -5px;
+  /* Center on track */
 }
