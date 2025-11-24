@@ -4,13 +4,12 @@ Vue.component('p5', {
 
   template: '<div></div>',
 
-  props: ['src','data'],
+  props: ['src', 'data'],
 
   methods: {
     // loadScript from https://stackoverflow.com/a/950146
     // loads the p5 javscript code from a file
-    loadScript: function (url, callback)
-    {
+    loadScript: function (url, callback) {
       // Adding the script tag to the head as suggested before
       var head = document.head;
       var script = document.createElement('script');
@@ -26,12 +25,12 @@ Vue.component('p5', {
       head.appendChild(script);
     },
 
-    loadSketch: function() {
+    loadSketch: function () {
       this.myp5 = new p5(sketch(this));
     }
   },
 
-  data: function() {
+  data: function () {
     return {
       myp5: {}
     }
@@ -43,8 +42,8 @@ Vue.component('p5', {
 
   watch: {
     data: {
-      handler: function(val, oldVal) {
-        if(this.myp5.dataChanged && this.myp5._setupDone) {
+      handler: function (val, oldVal) {
+        if (this.myp5.dataChanged && this.myp5._setupDone) {
           this.myp5.dataChanged(val, oldVal);
         }
       },
@@ -65,7 +64,7 @@ var app = new Vue({
       return Math.round(x * this.inverseEpsilon) / this.inverseEpsilon;
     },
 
-    dist(x1,y1, x2, y2) {
+    dist(x1, y1, x2, y2) {
       let dx = x2 - x1;
       let dy = y2 - y1;
       return Math.sqrt(dx * dx + dy * dy);
@@ -102,7 +101,7 @@ var app = new Vue({
     },
 
     convertPointstoString(points) {
-      return points.map(e => String(e[0] + 25) + ',' + String(e[1] + 25)).reduce((a,b) => a + ' ' + b)
+      return points.map(e => String(e[0] + 25) + ',' + String(e[1] + 25)).reduce((a, b) => a + ' ' + b)
     },
 
     SVGPoints(color) {
@@ -127,6 +126,22 @@ var app = new Vue({
       return '#' + ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1);
     },
 
+    handleRemoveLine(line) {
+      this.selectedLines = this.selectedLines.filter(e => !(e.angle == line.angle && e.index == line.index));
+
+      // Also remove custom color for this band
+      if (this.coloringMode === 'ammann-bands') {
+        const matchingBands = this.ammannBands.filter(b =>
+          b.angle === line.angle &&
+          Math.abs(b.index1 - line.index) < 0.001
+        );
+
+        matchingBands.forEach(band => {
+          Vue.delete(this.customBandColors, band.bandKey);
+        });
+      }
+    },
+
     onResize() {
       this.canvas1Resized = false;
       this.canvas2Resized = false;
@@ -145,7 +160,7 @@ var app = new Vue({
 
       // reset data to backup
       Object.assign(this.$data, this.dataBackup);
-      
+
       // and then recreate the backup, because resetting the data also emptied the backup
       this.dataBackup = JSON.parse(JSON.stringify(this.$data));
     },
@@ -182,7 +197,49 @@ var app = new Vue({
       document.body.removeChild(el);
 
       alert("Link copied to clipboard");
-    }, 
+    },
+
+    /**
+     * Applies a custom color to the currently selected Ammann bands.
+     * 
+     * This method handles the user interaction when a specific color is chosen from the picker.
+     * It maps the selected grid lines to their corresponding Ammann bands and updates the
+     * `customBandColors` state, triggering a reactivity update in the UI.
+     * 
+     * @param {Event} event - The input event from the color picker
+     */
+    applyColorToSelectedBands(event) {
+      const color = event.target.value;
+      this.applyCustomColor(color);
+    },
+
+    applyPaletteColorToSelectedBands(color) {
+      this.applyCustomColor(color);
+      // Also update the color picker value visually if possible
+      const picker = document.getElementById('bandColorPicker');
+      if (picker) picker.value = color;
+    },
+
+    applyCustomColor(color) {
+      // Guard clause: Ensure we are in the correct mode and have a selection
+      if (this.selectedLines.length === 0 || this.coloringMode !== 'ammann-bands') {
+        return;
+      }
+
+      this.selectedLines.forEach(line => {
+        // Find matching band for this line
+        // Note: We strictly match index1 to ensure 1-to-1 mapping between line and band.
+        // Matching index2 would cause the previous band to also be selected, leading to double coloring.
+        const matchingBands = this.ammannBands.filter(b =>
+          b.angle === line.angle &&
+          Math.abs(b.index1 - line.index) < 0.001
+        );
+
+        matchingBands.forEach(band => {
+          Vue.set(this.customBandColors, band.bandKey, color);
+        });
+      });
+    },
 
     requestFullscreen() {
 
@@ -213,7 +270,7 @@ var app = new Vue({
 
     offsets() { // dependencies: symmetry, pattern, disorder, randomSeed
 
-      let offsets =  Array(this.symmetry).fill(this.pattern);
+      let offsets = Array(this.symmetry).fill(this.pattern);
 
       if (this.disorder > 0) {
         let random = new Math.seedrandom('random seed ' + this.symmetry + ' and ' + this.randomSeed);
@@ -221,7 +278,7 @@ var app = new Vue({
       }
 
       if (this.pan > 0) {
-        offsets = offsets.map((e,i) => e - this.steps * this.pan * this.shift[i]);
+        offsets = offsets.map((e, i) => e - this.steps * this.pan * this.shift[i]);
       }
 
       return offsets;
@@ -233,7 +290,7 @@ var app = new Vue({
 
     steps() {
       // find nearest odd number to radius / (symmetry - 1)
-      return 2* Math.round((this.radius / (this.symmetry - 1) - 1)/2) + 1;
+      return 2 * Math.round((this.radius / (this.symmetry - 1) - 1) / 2) + 1;
     },
 
     spacing() {
@@ -241,7 +298,7 @@ var app = new Vue({
     },
 
     make1Dgrid() {
-      return Array(this.steps).fill(0).map((e,i) => i - (this.steps-1)/2).sort((a,b) => Math.abs(a) - Math.abs(b));
+      return Array(this.steps).fill(0).map((e, i) => i - (this.steps - 1) / 2).sort((a, b) => Math.abs(a) - Math.abs(b));
     },
 
     grid() { // dependencies: symmetry, steps, multiplier, offsets
@@ -269,10 +326,10 @@ var app = new Vue({
     sinCosTable() {  // dependencies: symmetry, multiplier
 
       let table = [];
-  
+
       for (let i = 0; i < this.symmetry; i++) {
         table.push({
-          sin: Math.sin(i * this.multiplier), 
+          sin: Math.sin(i * this.multiplier),
           cos: Math.cos(i * this.multiplier)
         });
       }
@@ -284,7 +341,7 @@ var app = new Vue({
 
       let angle = this.rotate * Math.PI / 180;
 
-      return { 
+      return {
         sin: Math.sin(angle),
         cos: Math.cos(angle)
       };
@@ -330,12 +387,12 @@ var app = new Vue({
 
                 // optimization: only list intersection points viewable on screen
                 // this ensures we don't draw or compute tiles that aren't visible
-                if (Math.abs(xprime * this.spacing) <= this.width / 2 + this.spacing 
-                && Math.abs(yprime * this.spacing) <= this.height / 2 + this.spacing) {
+                if (Math.abs(xprime * this.spacing) <= this.width / 2 + this.spacing
+                  && Math.abs(yprime * this.spacing) <= this.height / 2 + this.spacing) {
 
                   // this check ensures that we only draw tiles that are connected to other tiles
-                  if ((this.steps == 1 && this.dist(x,y,0,0) <= 0.5 * this.steps) 
-                                       || this.dist(x,y,0,0) <= 0.5 * (this.steps - 1)) {
+                  if ((this.steps == 1 && this.dist(x, y, 0, 0) <= 0.5 * this.steps)
+                    || this.dist(x, y, 0, 0) <= 0.5 * (this.steps - 1)) {
                     let index = JSON.stringify([this.approx(x), this.approx(y)]);
                     if (pts[index]) {
                       if (!pts[index].lines.includes(line1)) {
@@ -365,7 +422,7 @@ var app = new Vue({
           let angles = pt.lines.map(e => e.angle * this.multiplier);
           let angles2 = angles.map(e => (e + Math.PI) % (2 * Math.PI));
           // numerical sort angles and remove duplicates (e.g. due to degeneracy when phase = 0)
-          angles = [...angles, ...angles2].map(e => this.approx(e)).sort((a,b) => a - b).filter((e, i, arr) => arr.indexOf(e) == i);
+          angles = [...angles, ...angles2].map(e => this.approx(e)).sort((a, b) => a - b).filter((e, i, arr) => arr.indexOf(e) == i);
 
           // calculate points offset along these edges
           let offsetPts = [];
@@ -373,32 +430,33 @@ var app = new Vue({
             let x = pt.x + this.epsilon * -Math.sin(angle);
             let y = pt.y + this.epsilon * Math.cos(angle);
             offsetPts.push({
-              x:x,
-              y:y
+              x: x,
+              y: y
             });
           }
-          
+
           // calculate medians of these offset points
           let medianPts = [];
           let iMax = offsetPts.length;
           for (let i = 0; i < iMax; i++) {
             let x0 = offsetPts[i].x;
             let y0 = offsetPts[i].y;
-            let x1 = offsetPts[ (i+1) % iMax ].x;
-            let y1 = offsetPts[ (i+1) % iMax ].y;
-            
+            let x1 = offsetPts[(i + 1) % iMax].x;
+            let y1 = offsetPts[(i + 1) % iMax].y;
+
             let xm = (x0 + x1) / 2;
             let ym = (y0 + y1) / 2;
 
             medianPts.push({
-              x: xm, 
-              y: ym});
+              x: xm,
+              y: ym
+            });
           }
 
           // calculate dual of these median points      
           let dualPts = [];
-          let mean = {x: 0, y: 0};
-            
+          let mean = { x: 0, y: 0 };
+
           for (let myPt of medianPts) {
             let xd = 0;
             let yd = 0;
@@ -414,7 +472,7 @@ var app = new Vue({
             }
 
             dualPts.push({
-              x: xd, 
+              x: xd,
               y: yd
             });
             mean.x += xd;
@@ -429,7 +487,7 @@ var app = new Vue({
           // compute area using determinant method
           let area = 0;
           for (let i = 0; i < dMax; i++) {
-            area += 0.5 * (dualPts[i].x * dualPts[(i+1) % dMax].y - dualPts[i].y * dualPts[(i+1) % dMax].x);
+            area += 0.5 * (dualPts[i].x * dualPts[(i + 1) % dMax].y - dualPts[i].y * dualPts[(i + 1) % dMax].x);
           }
 
           area = String(Math.round(1000 * area) / 1000);
@@ -439,9 +497,9 @@ var app = new Vue({
           pt.dualPts = dualPts;
           pt.mean = mean;
 
-        }        
+        }
       }
-      
+
       return pts;
 
     },
@@ -451,25 +509,97 @@ var app = new Vue({
 
       let start = [this.hue + this.hueRange, this.sat, lightness + this.contrast];
       let end = [this.hue - this.hueRange, this.sat, lightness - this.contrast];
-      
+
       return [start, end];
     },
 
     colorPalette() {
 
-      let protoTiles = Object.values(this.intersectionPoints); // get a list of all tiles
-      const filterFunction = (e,f) => this.orientationColoring ? e.angles == f.angles : e.area == f.area; // we can pick tiles by orientation or area
-      protoTiles = protoTiles.filter((e, i, arr) => arr.findIndex(f => filterFunction(e,f)) == i); // pick 1 tile of each type using the function above
-      protoTiles = protoTiles.sort((a,b) => a.numVertices - b.numVertices); // then sort by number of vertices
+      // If using Ammann band coloring, generate band data
+      if (this.coloringMode === 'ammann-bands') {
+        // Set the color rule in the engine
+        if (this.colorEngine) {
+          this.colorEngine.setColorRule('ammann-bands');
+        }
 
-      let numTiles = protoTiles.length; 
+        // Return unique band colors for the legend
+        const bands = this.ammannBands;
+        if (bands.length > 0) {
+          const uniqueColors = [...new Set(bands.map(b => b.color))];
+          // Define a simple square for the legend
+          const squarePoints = [[-20, -20], [20, -20], [20, 20], [-20, 20]];
+
+          return uniqueColors.map(color => ({
+            fill: color,
+            points: squarePoints,
+            area: 'Band',
+            angles: ''
+          }));
+        }
+        return [];
+      }
+
+      // For new ColorRuleEngine modes, use tile-based coloring
+      const newColorModes = ['substitution-level', 'symmetry-group', 'adjacency', 'adjacency-evolution'];
+      if (newColorModes.includes(this.coloringMode)) {
+        if (this.colorEngine) {
+          this.colorEngine.setColorRule(this.coloringMode, { symmetryOrder: this.symmetry });
+        }
+
+        let protoTiles = Object.values(this.intersectionPoints);
+        let colorPalette = [];
+
+        for (let tile of protoTiles) {
+          const color = this.colorEngine ? this.colorEngine.colorTile(tile, {
+            symmetry: this.symmetry,
+            tiles: this.intersectionPoints,
+            inflationFactor: 2.0
+          }) : '#888888';
+
+          colorPalette.push({
+            fill: color,
+            points: this.normalize(tile.dualPts),
+            area: tile.area,
+            angles: tile.angles,
+          });
+        }
+
+        // Get unique colored tiles for display
+        const uniqueColors = [...new Set(colorPalette.map(t => t.fill))];
+        const displayPalette = [];
+
+        for (let color of uniqueColors) {
+          const tileWithColor = colorPalette.find(t => t.fill === color);
+          if (tileWithColor) {
+            displayPalette.push(tileWithColor);
+          }
+        }
+
+        return displayPalette;
+      }
+
+      // Original coloring logic for orientation and area modes
+      let protoTiles = Object.values(this.intersectionPoints); // get a list of all tiles
+      const filterFunction = (e, f) => {
+        if (this.coloringMode === 'orientation') {
+          return e.angles == f.angles;
+        } else if (this.coloringMode === 'area') {
+          return e.area == f.area;
+        } else {
+          return this.orientationColoring ? e.angles == f.angles : e.area == f.area;
+        }
+      };
+      protoTiles = protoTiles.filter((e, i, arr) => arr.findIndex(f => filterFunction(e, f)) == i); // pick 1 tile of each type using the function above
+      protoTiles = protoTiles.sort((a, b) => a.numVertices - b.numVertices); // then sort by number of vertices
+
+      let numTiles = protoTiles.length;
 
       let start = this.colors[0];
       let end = this.colors[1];
 
       let i = 0;
       let colorPalette = [];
-      let range = numTiles - 1/2;
+      let range = numTiles - 1 / 2;
 
       for (let tile of protoTiles) {
         let h = this.lerp(start[0], end[0], i / range) % 360;
@@ -488,11 +618,98 @@ var app = new Vue({
 
       if (this.reverseColors) {
         let reversedColorPalette = colorPalette.map(e => e.fill).reverse();
-        colorPalette.forEach((e,i) => e.fill = reversedColorPalette[i]);
+        colorPalette.forEach((e, i) => e.fill = reversedColorPalette[i]);
       }
 
       return colorPalette;
 
+    },
+
+    // Compute Ammann bands for rendering
+    ammannBands() {
+      if (this.coloringMode !== 'ammann-bands' || !this.colorEngine) {
+        return [];
+      }
+
+      // Generate bands using the ColorRuleEngine
+      // Ensure the correct rule is active to prevent race conditions
+      this.colorEngine.setColorRule('ammann-bands');
+
+      const bands = this.colorEngine.generateAmmannBands(this.grid, {
+        symmetry: this.symmetry,
+        spacing: this.spacing
+      });
+
+      // Apply color scheme transformations based on user settings
+      const numBands = bands.length;
+      if (numBands === 0) return [];
+
+      const lightness = 50;
+      const start = [this.hue + this.hueRange, this.sat, lightness + this.contrast];
+      const end = [this.hue - this.hueRange, this.sat, lightness - this.contrast];
+
+      // Pre-calculate interpolation factor and allocate color array
+      let colors = new Array(numBands);
+      
+      if (this.useDefaultPalette && this.colorEngine) {
+        // Use default palette colors exclusively
+        const defaultPalette = this.colorEngine.palettes.get('default');
+        if (defaultPalette) {
+          for (let i = 0; i < numBands; i++) {
+            colors[i] = defaultPalette.getColorByIndex(i);
+          }
+        }
+      } else {
+        // Use dynamic HSLuv gradient
+        const range = numBands > 1 ? numBands - 1 : 1;
+
+        for (let i = 0; i < numBands; i++) {
+          const t = i / range;
+          const h = (this.lerp(start[0], end[0], t) % 360 + 360) % 360;
+          const s = Math.max(0, Math.min(100, this.lerp(start[1], end[1], t)));
+          const l = Math.max(0, Math.min(100, this.lerp(start[2], end[2], t)));
+
+          const rgb = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
+          colors[i] = this.rgbToHex(...rgb);
+        }
+      }
+
+      // Reverse colors array if needed
+      if (this.reverseColors) {
+        colors.reverse();
+      }
+
+      // Construct the final colors array including custom colors
+      const finalColors = bands.map((band, i) => {
+        // Check for custom color first
+        if (this.customBandColors[band.bandKey]) {
+          return this.customBandColors[band.bandKey];
+        }
+        return colors[i];
+      });
+
+      // Update the engine's palette to match these colors
+      // This ensures that tile coloring (via colorTile) matches the band colors
+      if (this.colorEngine) {
+        const newPalette = new PaletteMap(finalColors);
+        this.colorEngine.registerPalette('dynamic-ammann', newPalette);
+        this.colorEngine.setActivePalette('dynamic-ammann');
+      }
+
+      // Apply colors to bands efficiently
+      return bands.map((band, i) => {
+        return {
+          angle: band.angle,
+          index1: band.index1,
+          index2: band.index2,
+          bandKey: band.bandKey,
+          color: finalColors[i]
+        };
+      });
+    },
+
+    paletteColors() {
+      return typeof DEFAULT_PALETTE !== 'undefined' ? DEFAULT_PALETTE : {};
     },
 
     canvasDisplaySetting() {
@@ -504,7 +721,7 @@ var app = new Vue({
     },
 
     queryURL() {
-      
+
       let queryURL = new URLSearchParams();
 
       for (let parameter of this.urlParameters) {
@@ -532,30 +749,37 @@ var app = new Vue({
 
     symmetry() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     pattern() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     radius() {
-      this.resetSelection();      
+      this.resetSelection();
+      this.customBandColors = {};
     },
 
     rotate() {
-      this.resetSelection();      
+      this.resetSelection();
+      this.customBandColors = {};
     },
 
     pan() {
-      this.resetSelection();      
+      this.resetSelection();
+      this.customBandColors = {};
     },
 
     disorder() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     randomSeed() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     show() {
@@ -568,6 +792,9 @@ var app = new Vue({
   created() {
     this.dataBackup = JSON.parse(JSON.stringify(this.$data));
 
+    // Initialize ColorRuleEngine
+    this.colorEngine = new ColorRuleEngine();
+
     let url = window.location.href.split('?');
     if (url.length > 1) {
       let urlParameters = new URLSearchParams(url[1]);
@@ -575,7 +802,7 @@ var app = new Vue({
         if (this.urlParameters.includes(parameter)) {
           this.$data[parameter] = JSON.parse(value);
         }
-      }      
+      }
     }
   },
 
@@ -607,7 +834,7 @@ var app = new Vue({
 
   data: {
     dataBackup: {},
-    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring'],
+    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'coloringMode', 'useDefaultPalette', 'use3dEffects'],
     symmetry: 5,
     radius: 75,
     pattern: 0.2,
@@ -618,6 +845,7 @@ var app = new Vue({
     showIntersections: true,
     colorTiles: true,
     orientationColoring: false,
+    coloringMode: 'ammann-bands',
     stroke: 128,
     showStroke: false,
     rotate: 0,
@@ -626,12 +854,15 @@ var app = new Vue({
     contrast: 36,
     sat: 74,
     reverseColors: false,
+    useDefaultPalette: false,
+    use3dEffects: false,
     show: 'Grid & Tiling',
     tiles: [],
     selectedLines: [],
     selectedTiles: [],
     epsilon: Math.pow(10, -6),
     inverseEpsilon: Math.pow(10, 6),
+    customBandColors: {},
     canvas1Resized: false,
     canvas2Resized: false,
     width: 0,
