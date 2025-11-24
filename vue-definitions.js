@@ -126,6 +126,22 @@ var app = new Vue({
       return '#' + ((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1);
     },
 
+    handleRemoveLine(line) {
+      this.selectedLines = this.selectedLines.filter(e => !(e.angle == line.angle && e.index == line.index));
+
+      // Also remove custom color for this band
+      if (this.coloringMode === 'ammann-bands') {
+        const matchingBands = this.ammannBands.filter(b =>
+          b.angle === line.angle &&
+          Math.abs(b.index1 - line.index) < 0.001
+        );
+
+        matchingBands.forEach(band => {
+          Vue.delete(this.customBandColors, band.bandKey);
+        });
+      }
+    },
+
     onResize() {
       this.canvas1Resized = false;
       this.canvas2Resized = false;
@@ -212,14 +228,11 @@ var app = new Vue({
 
       this.selectedLines.forEach(line => {
         // Find matching band for this line
-        // Note: A line might define the start or end of a band.
-        // We need to be careful. The AmmannBandColorRule generates bands between lines.
-        // The 'ammannBands' computed property has the bands.
-        // We need to find bands that are adjacent to this line.
-
+        // Note: We strictly match index1 to ensure 1-to-1 mapping between line and band.
+        // Matching index2 would cause the previous band to also be selected, leading to double coloring.
         const matchingBands = this.ammannBands.filter(b =>
           b.angle === line.angle &&
-          (Math.abs(b.index1 - line.index) < 0.001 || Math.abs(b.index2 - line.index) < 0.001)
+          Math.abs(b.index1 - line.index) < 0.001
         );
 
         matchingBands.forEach(band => {
@@ -636,17 +649,29 @@ var app = new Vue({
       const end = [this.hue - this.hueRange, this.sat, lightness - this.contrast];
 
       // Pre-calculate interpolation factor and allocate color array
-      const colors = new Array(numBands);
-      const range = numBands > 1 ? numBands - 1 : 1;
+      let colors = new Array(numBands);
+      
+      if (this.useDefaultPalette && this.colorEngine) {
+        // Use default palette colors exclusively
+        const defaultPalette = this.colorEngine.palettes.get('default');
+        if (defaultPalette) {
+          for (let i = 0; i < numBands; i++) {
+            colors[i] = defaultPalette.getColorByIndex(i);
+          }
+        }
+      } else {
+        // Use dynamic HSLuv gradient
+        const range = numBands > 1 ? numBands - 1 : 1;
 
-      for (let i = 0; i < numBands; i++) {
-        const t = i / range;
-        const h = (this.lerp(start[0], end[0], t) % 360 + 360) % 360;
-        const s = Math.max(0, Math.min(100, this.lerp(start[1], end[1], t)));
-        const l = Math.max(0, Math.min(100, this.lerp(start[2], end[2], t)));
+        for (let i = 0; i < numBands; i++) {
+          const t = i / range;
+          const h = (this.lerp(start[0], end[0], t) % 360 + 360) % 360;
+          const s = Math.max(0, Math.min(100, this.lerp(start[1], end[1], t)));
+          const l = Math.max(0, Math.min(100, this.lerp(start[2], end[2], t)));
 
-        const rgb = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
-        colors[i] = this.rgbToHex(...rgb);
+          const rgb = hsluv.hsluvToRgb([h, s, l]).map(e => Math.round(255 * e));
+          colors[i] = this.rgbToHex(...rgb);
+        }
       }
 
       // Reverse colors array if needed
@@ -724,30 +749,37 @@ var app = new Vue({
 
     symmetry() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     pattern() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     radius() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     rotate() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     pan() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     disorder() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     randomSeed() {
       this.resetSelection();
+      this.customBandColors = {};
     },
 
     show() {
@@ -802,7 +834,7 @@ var app = new Vue({
 
   data: {
     dataBackup: {},
-    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'coloringMode'],
+    urlParameters: ['symmetry', 'pattern', 'pan', 'disorder', 'randomSeed', 'radius', 'zoom', 'rotate', 'colorTiles', 'showIntersections', 'stroke', 'showStroke', 'hue', 'hueRange', 'contrast', 'sat', 'reverseColors', 'orientationColoring', 'coloringMode', 'useDefaultPalette', 'use3dEffects'],
     symmetry: 5,
     radius: 75,
     pattern: 0.2,
@@ -822,6 +854,8 @@ var app = new Vue({
     contrast: 36,
     sat: 74,
     reverseColors: false,
+    useDefaultPalette: false,
+    use3dEffects: false,
     show: 'Grid & Tiling',
     tiles: [],
     selectedLines: [],

@@ -286,6 +286,18 @@ function sketch(parent) { // we pass the sketch data from the parent
 
           instance.fill(color);
 
+          if (data.use3dEffects) {
+            instance.drawingContext.shadowBlur = 15;
+            instance.drawingContext.shadowColor = 'rgba(0,0,0,0.4)';
+            instance.drawingContext.shadowOffsetX = 3;
+            instance.drawingContext.shadowOffsetY = 3;
+          } else {
+            instance.drawingContext.shadowBlur = 0;
+            instance.drawingContext.shadowColor = 'transparent';
+            instance.drawingContext.shadowOffsetX = 0;
+            instance.drawingContext.shadowOffsetY = 0;
+          }
+
           instance.beginShape();
           for (let pt of tile.dualPts) {
             instance.vertex(preFactor * pt.x, preFactor * pt.y);
@@ -320,7 +332,7 @@ function sketch(parent) { // we pass the sketch data from the parent
                     // Find matching band
                     let matchingBand = data.ammannBands.find(b =>
                       b.angle === l.angle &&
-                      (Math.abs(b.index1 - l.index) < 0.001 || Math.abs(b.index2 - l.index) < 0.001)
+                      Math.abs(b.index1 - l.index) < 0.001
                     );
                     if (matchingBand) {
                       bandColors.push(matchingBand.color);
@@ -437,6 +449,19 @@ function sketch(parent) { // we pass the sketch data from the parent
               instance.fill(110, 110, 255);
             }
 
+          }
+
+
+          if (data.use3dEffects) {
+            instance.drawingContext.shadowBlur = 15;
+            instance.drawingContext.shadowColor = 'rgba(0,0,0,0.4)';
+            instance.drawingContext.shadowOffsetX = 3;
+            instance.drawingContext.shadowOffsetY = 3;
+          } else {
+            instance.drawingContext.shadowBlur = 0;
+            instance.drawingContext.shadowColor = 'transparent';
+            instance.drawingContext.shadowOffsetX = 0;
+            instance.drawingContext.shadowOffsetY = 0;
           }
 
           instance.beginShape();

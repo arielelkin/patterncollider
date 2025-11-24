@@ -88,7 +88,7 @@
           rotate: rotate,
           download: gridDownloadCount
         }" v-on:update:add-line="selectedLines = [...selectedLines, $event]"
-            v-on:update:remove-line="selectedLines = selectedLines.filter(e => !(e.angle == $event.angle && e.index == $event.index))"
+            v-on:update:remove-line="handleRemoveLine($event)"
             v-on:update:resize-completed="canvas1Resized = true" v-on:update:width="if ($event) {width = $event}"
             v-on:update:height="if ($event) {height = $event}"></p5>
         </div>
@@ -118,6 +118,7 @@
           orientationColoring: orientationColoring,
           coloringMode: coloringMode,
           ammannBands: ammannBands,
+          use3dEffects: use3dEffects,
           download: tilingDownloadCount
         }" v-on:update:add-tile="selectedTiles = [...selectedTiles, $event]"
             v-on:update:remove-tile="selectedTiles = selectedTiles.filter(e => !(e.x == $event.x && e.y == $event.y))"
@@ -218,6 +219,16 @@
         <div class="row-layout">
           <label for="reverseColors" :class="colorTiles ? '' : 'grey'">Reverse Colors</label>
           <input type="checkbox" id="reverseColors" v-model="reverseColors" class="checkbox" :disabled="!colorTiles">
+        </div>
+
+        <div class="row-layout">
+          <label for="useDefaultPalette" :class="colorTiles ? '' : 'grey'">Use Default Palette</label>
+          <input type="checkbox" id="useDefaultPalette" v-model="useDefaultPalette" class="checkbox" :disabled="!colorTiles">
+        </div>
+
+        <div class="row-layout">
+          <label for="use3dEffects" :class="colorTiles ? '' : 'grey'">3D Effects</label>
+          <input type="checkbox" id="use3dEffects" v-model="use3dEffects" class="checkbox" :disabled="!colorTiles">
         </div>
 
         <div class="row-layout">
